@@ -17,7 +17,7 @@ from django.contrib import admin
 from django.urls import include, path
 
 urlpatterns = [
-    path('falcon2/', include('falcon.urls')),
+    path('', include('falcon.urls')),
     path('admin/', admin.site.urls),
     path('falconer/', include('falconer.urls')),
 ]

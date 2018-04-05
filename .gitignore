@@ -1,0 +1,5 @@
+local_settings.py
+**.pyc
+*.cpython-34.pyc
+.DS_Store
+__pycache__

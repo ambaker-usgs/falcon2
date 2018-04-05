@@ -1,0 +1,26 @@
+div.hosts {
+    display: inline-block;
+}
+body {
+    padding-left: 60px;
+    padding-right: 60px;
+    line-height: 1.5;
+}
+table {
+    margin: auto;
+    border-collapse: separate;
+}
+td.is_up, td.is_down {
+    border-radius: 50%;
+    text-align: center;
+    vertical-align: center;
+    width: 20px;
+    height: 20px;
+    margin-right: 20px;
+}
+td.is_up {
+    background-color: hsla(103,88%,47%,1);
+}
+td.is_down {
+    background-color: hsla(0,100%,38%,0.7);
+}

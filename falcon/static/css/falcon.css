@@ -1,11 +1,11 @@
-div.hosts {
+div {
     display: inline-block;
+    min-width: 10%;
 }
 body {
     padding-left: 60px;
     padding-right: 60px;
     line-height: 1.5;
-    background-color: yellow;
 }
 table {
     margin: auto;
@@ -25,15 +25,38 @@ td.is_up {
 td.is_down {
     background-color: hsla(0,100%,38%,0.7);
 }
-body {font-familyt: serif;};
 td {padding: 50px;};
 
-td.stn-warn-red    {background-color: red;};
-td.stn-warn-yellow {background-color: yellow;};
-td.stn-warn-green  {background-color: green;};
-td.stn-warn-black  {background-color: black; color: white;};
+div.stn-warn-red {
+    display: inline-table;
+    background-color: red;
+    border: 1px solid red;
+}
+div.stn-warn-yellow {
+    display: inline-table;
+    background-color: yellow;
+}
+div.stn-warn-green {
+    display: inline-table;
+    border: 1px green;
+}
+div.stn-warn-black {
+    background-color: black;
+}
 
-td.text-warn-red    {color: red;};
-td.text-warn-yellow {color: yellow;};
-td.text-warn-green  {color: green;};
-td.text-warn-black  {color: black;};
+div.text-warn-red {
+    display: inline-table;
+    color: red;
+}
+div.text-warn-yellow {
+    display: inline-table;
+    color: yellow;
+}
+div.text-warn-green {
+    display: inline-table;
+    color: green;
+}
+div.text-warn-black {
+    display: inline-table;
+    color: black;
+}

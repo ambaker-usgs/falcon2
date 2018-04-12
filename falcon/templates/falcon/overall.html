@@ -5,11 +5,12 @@
 <br><br>
 <br><br>
 
-<style media="screen" type="text/css">
+<!--<style media="screen" type="text/css">
     body {font-familyt: serif;};
     td {padding: 50px;};
     
     td.stn-warn-red    {background-color: red;};
+    td #stn-warn-red    {background-color: red;};
     td.stn-warn-yellow {background-color: yellow;};
     td.stn-warn-green  {background-color: green;};
     td.stn-warn-black  {background-color: black; color: white;};
@@ -18,201 +19,35 @@
     td.text-warn-yellow {color: yellow;};
     td.text-warn-green  {color: green;};
     td.text-warn-black  {color: black;};
-</style>
+</style>-->
 
 <div>
     {{message}} seconds
 </div>
 
-<div>
-<table>
 {% for station in stations %}
-<tr>
+    <div style="display: block;">
     {% if station.station_warning_level < 2 %}
-    <td class="stn-warn-green">💚
+    <div class="stn-warn-green">💚
     {% elif station.station_warning_level == 2 %}
-    <td class="stn-warn-yellow">💛
+    <div class="stn-warn-yellow">💛
     {% elif station.station_warning_level == 3 %}
-    <td class="stn-warn-red">❤️
+    <div class="stn-warn-red">❤️
     {% else %}
-    
+    <div class="stn-warn-black">🖤
     {% endif %}
-    {{station.station.station_name}}</td>
-    
+    {{station.station.station_name}}</div>
+
     {% for alert, warning in station.alerts_dict.items %}
     {% if warning %}
-    <td class="text-warn-red">
+    <div class="text-warn-red">
     {% else %}
-    <td class="text-warn-green">
+    <div class="text-warn-green">
     {% endif %}
-    {{alert}}</td>
+    {{alert}}</div>
     {% endfor %}
 
-</tr>
+    </div>
 {% endfor %}
-</table>
-</div>
-
-<!--{% if hosts %}
-<div style="text-align:center;"><h1>Server Status</h1>
-{% if prod %}
-<div style="display: inline-block; padding-left: 50px; padding-right: 50px;">
-    <table>
-    <tr><h3>Production</h3></tr>
-    {% for host in prod %}
-    <tr>
-        {% if host.is_up %}
-        <td class="is_up">⇡</td>
-        {% elif not host.is_up %}
-        <td class="is_down"><div>⇣</div></td>
-        {% endif %}
-        <td>{{host.host_name}}<br></td>
-    </tr>
-    {% endfor %}
-    </table>
-</div>
-{% endif %}
-
-{% if dev %}
-<div style="display: inline-block; padding-left: 50px; padding-right: 50px;">
-    <table>
-    <tr><h3>Development</h3></tr>
-    {% for host in dev %}
-    <tr>
-        {% if host.is_up %}
-        <td class="is_up">⇡</td>
-        {% elif not host.is_up %}
-        <td class="is_down">⇣</td>
-        {% endif %}
-        <td>{{host.host_name}}</td>
-    </tr>
-    {% endfor %}
-    </table>
-</div>
-{% endif %}
-
-{% if misc %}
-<div style="display: inline-block; padding-left: 50px; padding-right: 50px;">
-    <table>
-    <tr><h3>Miscellaneous</h3></tr>
-    {% for host in misc %}
-    <tr>
-        {% if host.is_up %}
-        <td class="is_up">⇡</td>
-        {% elif not host.is_up %}
-        <td class="is_down">⇣</td>
-        {% endif %}
-        <td>{{host.host_name}}</td>
-    </tr>
-    {% endfor %}
-    </table>
-</div>
-{% endif %}
-</div>
-
-{% if sites %}
-<div style="text-align:center;"><h1>Website Status</h1>
-<div style="display: block; padding-left: 50px; padding-right: 50px;">
-    <table>
-    {% for site in sites %}
-    <tr>
-        {% if site.is_up %}
-        <td class="is_up">⇡</td>
-        {% elif not site.is_up %}
-        <td class="is_down">⇣</td>
-        {% endif %}
-        <td>{{site.alias}} {{site.category}} ( <a href="{{site.url}}">link</a> )</td>
-    </tr>
-    {% endfor %}
-    </table>
-</div>
-{% endif %}-->
-
-
-<!--<table>
-    <div display="block"><th><tr>Servers</tr></th></div>
-    <th>{% if prod %}<tr>Production</tr>{% endif %}
-        {% if dev %}<tr>Development</tr>{% endif %}
-        {% if misc %}<tr>Miscellaneous</tr>{% endif %}
-    </th>
-
-    {% for host in servers %}
-    <tr>
-        {% if host.isup %}
-        <td style="background-color: hsla(103,88%,47%,1); text-align:center; vertical-align: center; border-radius: 50%; width: 25px; height: 25px;">⇡</td>
-        <td>{{host.hostname}}</td>
-        {% else %}
-        <td style="background-color: hsla(0,100%,38%,0.5); text-align:center; vertical-align: center; border-radius: 50%; width: 25px; height: 25px;">⇣</td>
-        <td>{host.hostname}}</td>
-        {% endif %}
-    </tr>
-    {% endfor %}
-</table>
-{% endif %}-->
-
-
-
-
-
-
-
-
-
-<!--{% if prod %}
-<table>
-{% for server in prod %}
-<tr><td>{{server.network}}_{{server.station}} #{{server.ticket_associated}}:
-    <a href="/telmon2/admin/telmon2/tblissues/{{row.id}}/change/">[add description]</a>
-    <a href="{{weather_url}}">[weather]</a>
-    <a href="{{falcon_url}}">[falcon]</a>
-    <br><br>
-</td></tr>
-{% endfor %}
-</table>
-{% endif %}
-
-
-
-
-
-
-{% if existing and not new %}
-<table>
-<th>Telemetry Report for {{telem_report_date}}<br><br></th>
-{% for row in existing %}
-    {% if row.date_opened > recent %}
-    <tr><td>
-        {{row.network}}_{{row.station}}
-        <a href="/telmon2/admin/telmon2/tblissues/{{row.id}}/change/">#</a>
-        {{row.ticket_associated}}:
-        {{row.description}}
-    <br><br>
-    </td></tr>
-    {% endif %}
-    
-{% endfor %}
-</table>
-    
------------------
-
-<table>
-
-{% for row in existing %}
-    
-    {% if row.date_opened < recent %}
-    <tr><td>
-        {{row.network}}_{{row.station}}
-        <a href="/telmon2/admin/telmon2/tblissues/{{row.id}}/change/">#</a>
-        {{row.ticket_associated}}:
-        {{row.description}}
-    <br><br>
-    </td></tr>
-    {% endif %}
-    
-
-{% endfor %}
-</table>
-<a href="mailto:anssmaint@usgs.gov,gsnmaint@usgs.gov?subject={{subject}}&body={{body}}">  ✉️  </a>
-{% endif %}-->
 
 {% endblock %}

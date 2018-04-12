@@ -33,6 +33,7 @@ DEBUG = True
 INSTALLED_APPS = [
     'falcon.apps.FalconConfig',
     'falconer.apps.FalconerConfig',
+    'bootstrap3',
     'django.contrib.admin',
     'django.contrib.auth',
     'django.contrib.contenttypes',

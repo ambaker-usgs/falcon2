@@ -25,3 +25,15 @@ td.is_up {
 td.is_down {
     background-color: hsla(0,100%,38%,0.7);
 }
+body {font-familyt: serif;};
+td {padding: 50px;};
+
+td.stn-warn-red    {background-color: red;};
+td.stn-warn-yellow {background-color: yellow;};
+td.stn-warn-green  {background-color: green;};
+td.stn-warn-black  {background-color: black; color: white;};
+
+td.text-warn-red    {color: red;};
+td.text-warn-yellow {color: yellow;};
+td.text-warn-green  {color: green;};
+td.text-warn-black  {color: black;};

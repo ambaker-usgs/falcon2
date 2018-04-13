@@ -5,46 +5,53 @@
 <br><br>
 <br><br>
 
-<!--<style media="screen" type="text/css">
-    body {font-familyt: serif;};
-    td {padding: 50px;};
-    
-    td.stn-warn-red    {background-color: red;};
-    td #stn-warn-red    {background-color: red;};
-    td.stn-warn-yellow {background-color: yellow;};
-    td.stn-warn-green  {background-color: green;};
-    td.stn-warn-black  {background-color: black; color: white;};
-
-    td.text-warn-red    {color: red;};
-    td.text-warn-yellow {color: yellow;};
-    td.text-warn-green  {color: green;};
-    td.text-warn-black  {color: black;};
-</style>-->
-
 <div>
     {{message}} seconds
 </div>
 
 {% for station in stations %}
-    <div style="display: block;">
     {% if station.station_warning_level < 2 %}
-    <div class="stn-warn-green">💚
+    <div class="falcon2 container green">
+    <div class="falcon2 station green">💚
     {% elif station.station_warning_level == 2 %}
-    <div class="stn-warn-yellow">💛
+    <div class="falcon2 container yellow">
+    <div class="falcon2 station yellow">💛
     {% elif station.station_warning_level == 3 %}
-    <div class="stn-warn-red">❤️
+    <div class="falcon2 container red">
+    <div class="falcon2 station red">❤️
     {% else %}
-    <div class="stn-warn-black">🖤
+    <div class="black">🖤
     {% endif %}
     {{station.station.station_name}}</div>
 
     {% for alert, warning in station.alerts_dict.items %}
-    {% if warning %}
-    <div class="text-warn-red">
+    {% if warning == 0 %}
+    <div class="falcon2 warning black">
+    {% elif warning == 1 %}
+    <div class="falcon2 warning green">
+    {% elif warning == 2 %}
+    <div class="falcon2 warning yellow">
+    {% elif warning == 3 %}
+    <div class="falcon2 warning red">
     {% else %}
-    <div class="text-warn-green">
+    <div class="falcon2 warning black">
     {% endif %}
     {{alert}}</div>
+    {% endfor %}
+
+    {% for channel, warning in station.channels_dict.items %}
+    {% if warning == 0 %}
+    <div class="falcon2 warning black">
+    {% elif warning == 1 %}
+    <div class="falcon2 warning green">
+    {% elif warning == 2 %}
+    <div class="falcon2 warning yellow">
+    {% elif warning == 3 %}
+    <div class="falcon2 warning red">
+    {% else %}
+    <div class="falcon2 warning black">
+    {% endif %}
+    {{channel}}</div>
     {% endfor %}
 
     </div>

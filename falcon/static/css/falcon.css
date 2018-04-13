@@ -1,62 +1,56 @@
-div {
-    display: inline-block;
-    min-width: 10%;
-}
 body {
     padding-left: 60px;
     padding-right: 60px;
     line-height: 1.5;
 }
-table {
-    margin: auto;
-    border-collapse: separate;
+div.falcon2 {
+    display: inline;
 }
-td.is_up, td.is_down {
-    border-radius: 50%;
-    text-align: center;
-    vertical-align: center;
-    width: 20px;
-    height: 20px;
-    margin-right: 20px;
+div.container {
+    display: inline-block;
+    margin: 5px;
+    padding: 0px;
 }
-td.is_up {
-    background-color: hsla(103,88%,47%,1);
+div.station {
+    display: inline;
+    min-width: 20%;
 }
-td.is_down {
-    background-color: hsla(0,100%,38%,0.7);
-}
-td {padding: 50px;};
-
-div.stn-warn-red {
-    display: inline-table;
-    background-color: red;
-    border: 1px solid red;
-}
-div.stn-warn-yellow {
-    display: inline-table;
-    background-color: yellow;
-}
-div.stn-warn-green {
-    display: inline-table;
-    border: 1px green;
-}
-div.stn-warn-black {
-    background-color: black;
+div.warning {
+    display: inline;
+    min-width: 5%;
 }
 
-div.text-warn-red {
-    display: inline-table;
+div.warning.red {
     color: red;
 }
-div.text-warn-yellow {
-    display: inline-table;
+div.warning.yellow {
     color: yellow;
 }
-div.text-warn-green {
-    display: inline-table;
+div.warning.green {
     color: green;
 }
-div.text-warn-black {
-    display: inline-table;
+div.warning.black {
+    color: black;
+}
+
+div.container.red {
+    border: 5px solid red;
+}
+div.station.red {
+    background-color: red;
+    color: black;
+}
+div.container.yellow { 
+    border: 5px solid yellow;
+}
+div.station.yellow {
+    background-color: yellow;
+    color: black;
+}
+div.container.green {
+    border: 5px solid green;
+}
+div.station.green {
+    background-color: green;
     color: black;
 }

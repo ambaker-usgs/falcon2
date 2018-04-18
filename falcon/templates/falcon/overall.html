@@ -2,33 +2,36 @@
 
 {% block content %}
 
+
 <br><br>
 <br><br>
 
-<div>
+<div class="falcon2">
     {{message}} seconds
 </div>
 
 {% for station in stations %}
     {% if station.station_warning_level < 2 %}
     <div class="falcon2 container green">
-    <div class="falcon2 station green">💚
+    <div class="falcon2 station green">
     {% elif station.station_warning_level == 2 %}
     <div class="falcon2 container yellow">
-    <div class="falcon2 station yellow">💛
+    <div class="falcon2 station yellow">
     {% elif station.station_warning_level == 3 %}
     <div class="falcon2 container red">
-    <div class="falcon2 station red">❤️
+    <div class="falcon2 station red">
     {% else %}
-    <div class="black">🖤
+    <div class="falcon2 container black">
+    <div class="falcon2 station black">
     {% endif %}
-    {{station.station.station_name}}</div>
+    <a href="/falcon2/{{station.net_code}}/{{station.sta_code}}">
+    {{station.station.station_name}}</a></div>
 
     {% for alert, warning in station.alerts_dict.items %}
     {% if warning == 0 %}
-    <div class="falcon2 warning black">
-    {% elif warning == 1 %}
     <div class="falcon2 warning green">
+    {% elif warning == 1 %}
+    <div class="falcon2 warning red">
     {% elif warning == 2 %}
     <div class="falcon2 warning yellow">
     {% elif warning == 3 %}
@@ -36,10 +39,10 @@
     {% else %}
     <div class="falcon2 warning black">
     {% endif %}
-    {{alert}}</div>
+    <span title="{{warning}}">{{alert}}</span></div>
     {% endfor %}
-
-    {% for channel, warning in station.channels_dict.items %}
+    
+    {% for channel, warning in station.channels_dict_sorted %}
     {% if warning == 0 %}
     <div class="falcon2 warning black">
     {% elif warning == 1 %}
@@ -51,10 +54,14 @@
     {% else %}
     <div class="falcon2 warning black">
     {% endif %}
-    {{channel}}</div>
+    <a href="/falcon2/{{station.net_code}}/{{station.sta_code}}/{{channel}}" title="{{warning}}">
+    {{channel}}</a></div>
     {% endfor %}
 
     </div>
 {% endfor %}
+
+{% block alerts %}
+{% endblock %}
 
 {% endblock %}

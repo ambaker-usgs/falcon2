@@ -7,50 +7,73 @@ div.falcon2 {
     display: inline;
 }
 div.container {
-    display: inline-block;
+    display: flex;
     margin: 5px;
     padding: 0px;
 }
+div.container:nth-child(2n) {
+    background-color: #AAA;
+}
+div.container:nth-child(2n+1) {
+    background-color: #CCC;
+}
+div.container a {
+    color: inherit;
+    text-decoration: underline;
+}
 div.station {
     display: inline;
-    min-width: 20%;
+    min-width: 7%;
+    padding: 0px 10px;
+}
+div.station a {
+    text-decoration: none;
+}
+div.station a:hover {
+    text-decoration: underline;
 }
 div.warning {
     display: inline;
-    min-width: 5%;
+    margin: 0px 5px;
+    min-width: 3%;
 }
 
 div.warning.red {
-    color: red;
+    color: hsla(0,100%,50%,0.9);
 }
 div.warning.yellow {
-    color: yellow;
+    color: hsla(48,100%,50%,1);
+    text-shadow: #555 1px 0 1px;
 }
 div.warning.green {
-    color: green;
+    color: hsla(120,100%,25%,0.9);
 }
 div.warning.black {
     color: black;
 }
 
 div.container.red {
-    border: 5px solid red;
+    border: 1px solid hsla(0,100%,50%,0.6);
 }
 div.station.red {
-    background-color: red;
+    background-color: hsla(0,100%,50%,0.6);
     color: black;
 }
 div.container.yellow { 
-    border: 5px solid yellow;
+    border: 1px solid hsla(48,100%,50%,0.6);
 }
 div.station.yellow {
-    background-color: yellow;
+    background-color: hsla(48,100%,50%,0.6);
     color: black;
 }
 div.container.green {
-    border: 5px solid green;
+    border: 1px solid hsla(120,100%,25%,0.6);
 }
 div.station.green {
-    background-color: green;
+    background-color: hsla(120,100%,25%,0.6);
     color: black;
+}
+div.alert_text {
+    display: block;
+    padding: 0px 10px;
 }

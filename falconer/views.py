@@ -14,9 +14,8 @@ from falcon.models import Stations, Stationdays, Channels, Alerts, ValuesAhl
 
 def falconer(request):
     stationdate = UTCDateTime.now()
-    stationdate = UTCDateTime('%s,%s' % (UTCDateTime.now().year - 4, UTCDateTime.now().strftime('%j')))
+    return HttpResponse("Hello, a falcon has been dispatched!")
     while stationdate >= UTCDateTime('%s,%s' % (UTCDateTime.now().year - 8, UTCDateTime.now().strftime('%j'))):
-        print(stationdate.strftime('%Y,%j'))    #debug
         process_opaque_files(glob.glob('/msd/*_*/%s/90_OF[AC].512.seed' % stationdate.strftime('%Y/%j')))
         process_opaque_files(glob.glob('/tr1/telemetry_days/*_*/%s/90_OF[AC].512.seed' % stationdate.strftime('%Y/%Y_%j')))
         stationdate -= 86400
@@ -89,17 +88,10 @@ def process_opaque_files(opaque_files):
                 value.high_value = val_high
                 value.low_value = val_low
                 value.save()
-                # ValuesAhl.objects.update(stationday_fk=staday,
-                #                          channel_fk=channel,
-                #                          avg_value=val_avg,
-                #                          high_value=val_high,
-                #                          low_value=val_low)
         # OFA ALERTS
         elif 'OFA' in opaque_filename:
             staday.ofa_mod_ts = opaque_fmt
             staday.save()
-            # Stationdays.objects.update(stationday_id=staday.stationday_id,
-            #                                            ofa_mod_ts=opaque_fmt)
 
             # also add the alert to the alerts table
             alerts = subprocess.getoutput(ofadump % ('f', opaque)).split('\n')

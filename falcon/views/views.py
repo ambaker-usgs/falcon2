@@ -13,7 +13,6 @@ class StationOverview(object):
         self.station = Stations.objects.get(station_name=netsta)
         self.net_code, self.sta_code = self.station.station_name.split('_')
         self.most_recent_stationday = Stationdays.objects.filter(station_fk=self.station).order_by('-stationday_date')[0]
-        self.debug = []
         self.get_channels_with_warnings()
         # alerts = Alerts.objects.filter(stationday_fk__stationday_date__gte=datetime.today() - timedelta(alert_days_back))
         self.get_alerts_with_warnings(alerts, alert_days_back)
@@ -26,10 +25,8 @@ class StationOverview(object):
             # Battery Voltages (B1V...B12V) usually stay around 13v
             if str(chan.channel_fk)[0] == 'B' and str(chan.channel_fk)[-1] == 'V' and str(chan.channel_fk)[1:-1].isdigit():
                 if 11 <= chan.low_value <= 15 and 11 <= chan.high_value <= 15:
-                    self.debug.extend([str(chan), str(chan.low_value), str(11 <= chan.low_value <= 15), str(chan.high_value), str(11 <= chan.high_value <= 15), '<br>'])
                     self.channels_dict[str(chan.channel_fk)] = 1
                 elif 10 <= chan.low_value <= 16 and 10 <= chan.high_value <= 16:
-                    self.debug.extend([str(chan.low_value), str(10 <= chan.low_value <= 16), str(chan.high_value), str(10 <= chan.high_value <= 16),'<br>'])
                     self.channels_dict[str(chan.channel_fk)] = 2
                 else:
                     self.channels_dict[str(chan.channel_fk)] = 3

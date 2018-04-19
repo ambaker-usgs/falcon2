@@ -20,14 +20,9 @@ class Command(BaseCommand):
     def handle(self, *args, **options):
         for refresh_depth in options['action']:
             try:
-                self.stdout.write('You have requested a %s refresh. 🦅' % refresh_depth)
                 falconer(refresh_depth)
             except Exception as e:
                 raise CommandError('Unable to %sly refresh Falcon files: %s' % (refresh_depth, e))
-
-           
-
-            self.stdout.write(self.style.SUCCESS('Successfully refreshed Falcon files %sly' % refresh_depth))
 
 def falconer(refresh_depth):
     stationdate = UTCDateTime.now()

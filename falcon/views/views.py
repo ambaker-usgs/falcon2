@@ -121,8 +121,8 @@ def channel_level(request, network='*', station='*', channel='*'):
     'Channel view'
     net_stas = Stations.objects.filter(station_name=network + '_' + station).order_by('station_name')
     now = datetime.today()
-    process_opaque_files(glob.glob('/msd/%s/%s/90_OF[AC].512.seed' % ('-'.join([network, station]), stationdate.strftime('%Y/%j'))))
-    process_opaque_files(glob.glob('/tr1/telemetry_days/%s/%s/90_OF[AC].512.seed' % ('-'.join([network, station]), stationdate.strftime('%Y/%Y_%j'))))
+    process_opaque_files(glob.glob('/msd/%s/%s/90_OF[AC].512.seed' % ('-'.join([network, station]), now.strftime('%Y/%j'))))
+    process_opaque_files(glob.glob('/tr1/telemetry_days/%s/%s/90_OF[AC].512.seed' % ('-'.join([network, station]), now.strftime('%Y/%Y_%j'))))
     stations = []
     for net_sta in net_stas:
         alert = Alerts.objects.filter(stationday_fk__station_fk=net_sta).filter(stationday_fk__stationday_date__gte=now - timedelta(60)).order_by('-alert_text')
@@ -134,7 +134,7 @@ def channel_level(request, network='*', station='*', channel='*'):
         channel_low_values = ValuesAhl.objects.filter(stationday_fk__station_fk=net_sta,channel_fk__channel=channel).values_list('stationday_fk__stationday_date', 'low_value').order_by('-stationday_fk__stationday_date')
         wl = stations[0].channels_dict[channel]
         message.append('%s h:%s a:%.2f l:%d wl:%d' % (channel, str(channel_high_values[0]), channel_avg_values[0][1], channel_low_values[0][1], wl))
-    return HttpResponse("Hello, you're at the channel level for %s_%s %s. With %s stations.<br>%s" % (network, station, channel, '<br>'.join(message),'<br>'.join(stations[0].debug)))
+    return HttpResponse("Hello, you're at the channel level for %s_%s %s. With %s stations." % (network, station, channel, '<br>'.join(message)))
 
 def process_opaque_files(opaque_files):
     'Pass the files to ofadump and extract the necessary parameters for database insertion'

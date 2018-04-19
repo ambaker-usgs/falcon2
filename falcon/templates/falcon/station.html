@@ -1,0 +1,62 @@
+{% extends "falcon/header.html" %}
+
+{% block content %}
+
+<br><br>
+<br><br>
+
+<div>
+    {{message}} seconds
+</div>
+
+{% for station in stations %}
+    {% if station.station_warning_level < 2 %}
+    <div class="falcon2 container green">
+    <div class="falcon2 station green">
+    {% elif station.station_warning_level == 2 %}
+    <div class="falcon2 container yellow">
+    <div class="falcon2 station yellow">
+    {% elif station.station_warning_level == 3 %}
+    <div class="falcon2 container red">
+    <div class="falcon2 station red">
+    {% else %}
+    <div class="black">🖤
+    {% endif %}
+    <a href="/falcon2/{{station.net_code}}/{{station.sta_code}}">
+    {{station.station.station_name}}</a></div>
+
+    {% for alert, warning in station.alerts_dict.items %}
+    {% if warning == 0 %}
+    <div class="falcon2 warning black">
+    {% elif warning == 1 %}
+    <div class="falcon2 warning green">
+    {% elif warning == 2 %}
+    <div class="falcon2 warning yellow">
+    {% elif warning == 3 %}
+    <div class="falcon2 warning red">
+    {% else %}
+    <div class="falcon2 warning black">
+    {% endif %}
+    {{alert}}</div>
+    {% endfor %}
+
+    {% for channel, warning in station.channels_dict.items %}
+    {% if warning == 0 %}
+    <div class="falcon2 warning black">
+    {% elif warning == 1 %}
+    <div class="falcon2 warning green">
+    {% elif warning == 2 %}
+    <div class="falcon2 warning yellow">
+    {% elif warning == 3 %}
+    <div class="falcon2 warning red">
+    {% else %}
+    <div class="falcon2 warning black">
+    {% endif %}
+    <a href="/falcon2/{{station.net_code}}/{{station.sta_code}}/{{channel}}">
+    {{channel}}</a></div>
+    {% endfor %}
+
+    </div>
+{% endfor %}
+
+{% endblock %}

@@ -1,0 +1,9 @@
+{% extends "falcon/overall.html" %}
+
+{% block alerts %}
+
+{% for alert in alerts %}
+    <div class="falcon2 container alert_text">{{alert.alert_text}}</div>
+{% endfor %}
+
+{% endblock %}

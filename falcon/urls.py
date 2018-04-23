@@ -9,5 +9,6 @@ urlpatterns = [
     path('falconer', include('falconer.urls')),
     re_path(r'^(?P<network>[\w+]{2})/$', views.network_level),
     re_path(r'^(?P<network>[\w+]{2})/(?P<station>\w+)/$', views.station_level),
-    re_path(r'^(?P<network>[\w+]{2})/(?P<station>\w+)/(?P<channel>\w+)/$', views.channel_level),
+    re_path(r'^(?P<network>[\w+]{2})/(?P<station>\w+)/(?P<channel>\w+)/$', views.channel_level, name='channel_level'),
+    re_path(r'^api/(?P<network>[\w+]{2})/(?P<station>\w+)/(?P<channel>\w+)/$', views.api_channel_data, name='channel_data'),
 ]

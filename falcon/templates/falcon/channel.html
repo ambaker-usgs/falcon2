@@ -1,0 +1,30 @@
+{% extends "falcon/header.html" %}
+{% load static %}
+
+{% block content %}
+
+<h1>Channel: {{ network }}-{{ station }}-{{ channel }}</h1>
+<script type="text/javascript">
+    $(document).ready(function () {
+        $.ajax( {
+            dataType: 'json',
+            url: "{% url 'channel_data' network=network  station=station channel=channel %}",
+            data: {startdate: '2017-1 00:00', enddate: '2018-91 00:00'},
+            success: function ( json ) {
+                console.log(json);
+                document.plot_data = json;
+                buildGraph();
+            },
+            error: function () {
+                alert('Error getting channel data');
+            }
+        } );
+    });
+</script>
+
+<script src="http://d3js.org/d3.v3.min.js"></script>
+<script src="{% static '/js/d3.legend.js' %}"></script>
+<script src="{% static '/js/d3graph/channel.js' %}"></script>
+<link href="{% static '/css/d3graph/d3graph.css' %}" rel="stylesheet">
+
+{% endblock %}

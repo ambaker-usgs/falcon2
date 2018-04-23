@@ -1,20 +1,16 @@
-from django.http import HttpResponse
-from django.shortcuts import render
+from django.http import HttpResponse, JsonResponse
+from django.shortcuts import render, get_object_or_404
 from django.template import loader
-
 from falcon.models import Stations, Stationdays, Channels, Alerts, ValuesAhl
 
+import json
 import glob
-import os
 import subprocess
 from datetime import datetime, timedelta
-from dateutil import tz
-from multiprocessing import Pool
 
 class StationOverview(object):
     def __init__(self, netsta, alerts, alert_days_back=15):
         self.station = Stations.objects.get(station_name=netsta)
-        print('%s %s %s' % ('-' * 20, netsta, '-'*20))
         self.net_code, self.sta_code = self.station.station_name.split('_')
         self.most_recent_stationday = Stationdays.objects.filter(station_fk=self.station).order_by('-stationday_date')[0]
         self.get_channels_with_warnings()
@@ -34,7 +30,7 @@ class StationOverview(object):
                     self.channels_dict[str(chan.channel_fk)] = 2
                 else:
                     self.channels_dict[str(chan.channel_fk)] = 3
-            # Direct Current Voltage, usually stays around 24v
+            # Battery Voltages (B1V...B12V) usually stay around 13v
             elif str(chan.channel_fk)[0:3] == 'DCV':
                 if 21 <= chan.low_value <= 30 and 21 <= chan.high_value <= 30:
                     self.channels_dict[str(chan.channel_fk)] = 1
@@ -46,35 +42,38 @@ class StationOverview(object):
                 self.channels_dict[str(chan.channel_fk)] = 0
         self.channels_dict_sorted = sorted(self.channels_dict.items())
     def get_alerts_with_warnings(self, alerts, alert_days_back):
-        alerts = alerts.order_by('-alert_text')
+        # alerts = Alerts.objects.filter(stationday_fk__station_fk=self.station,
+        #                                stationday_fk__stationday_date__gte=self.most_recent_stationday.stationday_date - timedelta(7)).order_by('-alert_text')
+        # alerts = Alerts.objects.filter(stationday_fk__station_fk=self.station,
+        #                                stationday_fk__stationday_date__gte=self.most_recent_stationday.stationday_date - timedelta(7)).order_by('-alert_text')
+        alerts.filter(stationday_fk__stationday_date__gte=self.most_recent_stationday.stationday_date - timedelta(alert_days_back)).order_by('-alert_text')
+        # alerts.filter(stationday_fk__stationday_date=self.most_recent_stationday.stationday_date).order_by('-alert_text')
+        #alerts = Alerts.objects.filter(stationday_fk__station_fk=self.station)
+        #self.alerts = alerts.filter(stationday_fk__stationday_date__gte=self.most_recent_stationday.stationday_date - timedelta(alert_days_back))
         self.alerts_dict = {}
-        latest_ofc_file_date = Stationdays.objects.filter(station_fk=self.station).order_by('-stationday_date')[0].stationday_date
-        self.alerts_dict['OFC'] = latest_ofc_file_date <= (datetime.today() - timedelta(1))
         for alert in alerts:
             # sets the state of warning for each alert according to most recent alert
             # True means there is a warning, False means no warning
             trigger = str(alert).split()[6]
-            if self.alerts_dict and (trigger not in self.alerts_dict):
+            if trigger not in self.alerts_dict:
                 self.alerts_dict[trigger] = str(alert).endswith('triggered')
     def calculate_highest_alert(self):
         self.station_warning_level = 0
-        if self.channels_dict:
-            self.station_warning_level = max(self.station_warning_level, max(self.channels_dict.values()))
-        if self.alerts_dict:
-            self.station_warning_level = max(self.station_warning_level, 3 if max(self.alerts_dict.values()) else 1)
-        print(self.station, self.station_warning_level, '=', self.alerts_dict.values(), max(self.alerts_dict.values()), 3 if max(self.alerts_dict.values()) else 1)
+        for chan in self.channels_dict:
+            self.station_warning_level = max(self.station_warning_level, self.channels_dict[chan])
+        for alert in self.alerts_dict:
+            self.station_warning_level = max(self.station_warning_level, 3 if self.alerts_dict[alert] else 1)
 
 # Create your views here.
 def index(request):
     'Overall view'
     net_stas = Stations.objects.all().order_by('station_name')
     now = datetime.today()
-    print('Number of stations: %d' % len(net_stas))
     stations = []
     alerts = Alerts.objects.select_related('stationday_fk','stationday_fk__station_fk').filter(stationday_fk__stationday_date__gte=now - timedelta(60))
     for net_sta in net_stas:
-        station_alerts = alerts.filter(stationday_fk__station_fk__station_name=net_sta)
-        stations.append(StationOverview(net_sta, station_alerts))
+        alert = alerts.filter(stationday_fk__station_fk__station_name=net_sta)
+        stations.append(StationOverview(net_sta, alert))
     template = loader.get_template('falcon/overall.html')
     context = {
         'message': (datetime.today() - now).seconds,
@@ -103,11 +102,12 @@ def network_level(request, network='*'):
 
 def station_level(request, network='*', station='*'):
     'Station view'
-    net_sta = Stations.objects.filter(station_name=network + '_' + station).order_by('station_name')[0]
+    net_stas = Stations.objects.filter(station_name=network + '_' + station).order_by('station_name')
     now = datetime.today()
     stations = []
-    alert = Alerts.objects.filter(stationday_fk__station_fk=net_sta).filter(stationday_fk__stationday_date__gte=now - timedelta(60)).order_by('-alert_text')
-    stations.append(StationOverview(net_sta, alert))
+    for net_sta in net_stas:
+        alert = Alerts.objects.filter(stationday_fk__station_fk=net_sta).filter(stationday_fk__stationday_date__gte=now - timedelta(60)).order_by('-alert_text')
+        stations.append(StationOverview(net_sta, alert))
     template = loader.get_template('falcon/alerts.html')
     context = {
         'message': (datetime.today() - now).seconds,
@@ -117,24 +117,62 @@ def station_level(request, network='*', station='*'):
     return HttpResponse(template.render(context, request))
     #return HttpResponse("Hello, you're at the station level for %s_%s." % (network, station))
 
-def channel_level(request, network='*', station='*', channel='*'):
-    'Channel view'
-    net_stas = Stations.objects.filter(station_name=network + '_' + station).order_by('station_name')
-    now = datetime.today()
-    process_opaque_files(glob.glob('/msd/%s/%s/90_OF[AC].512.seed' % ('-'.join([network, station]), stationdate.strftime('%Y/%j'))))
-    process_opaque_files(glob.glob('/tr1/telemetry_days/%s/%s/90_OF[AC].512.seed' % ('-'.join([network, station]), stationdate.strftime('%Y/%Y_%j'))))
-    stations = []
-    for net_sta in net_stas:
-        alert = Alerts.objects.filter(stationday_fk__station_fk=net_sta).filter(stationday_fk__stationday_date__gte=now - timedelta(60)).order_by('-alert_text')
-        stations.append(StationOverview(net_sta, alert))
-    message = []
-    for channel, warning_level in stations[0].channels_dict_sorted:
-        channel_high_values = ValuesAhl.objects.filter(stationday_fk__station_fk=net_sta,channel_fk__channel=channel).values_list('stationday_fk__stationday_date', 'high_value').order_by('-stationday_fk__stationday_date')
-        channel_avg_values = ValuesAhl.objects.filter(stationday_fk__station_fk=net_sta,channel_fk__channel=channel).values_list('stationday_fk__stationday_date', 'avg_value').order_by('-stationday_fk__stationday_date')
-        channel_low_values = ValuesAhl.objects.filter(stationday_fk__station_fk=net_sta,channel_fk__channel=channel).values_list('stationday_fk__stationday_date', 'low_value').order_by('-stationday_fk__stationday_date')
-        wl = stations[0].channels_dict[channel]
-        message.append('%s h:%s a:%.2f l:%d wl:%d' % (channel, str(channel_high_values[0]), channel_avg_values[0][1], channel_low_values[0][1], wl))
-    return HttpResponse("Hello, you're at the channel level for %s_%s %s. With %s stations.<br>%s" % (network, station, channel, '<br>'.join(message),'<br>'.join(stations[0].debug)))
+
+def api_channel_data(request, network, station, channel):
+    """
+    Grab data for a specific Channel
+    """
+    if request.method == 'GET':
+        fields_raw = request.GET.get('fields', None)
+        start_date_raw = request.GET.get('startdate', None)
+        start_date = datetime.strptime(start_date_raw, '%Y-%j %H:%M') if start_date_raw else datetime.now() + timedelta(-60)
+        end_date_raw = request.GET.get('enddate', None)
+        end_date = datetime.strptime(end_date_raw, '%Y-%j %H:%M') if end_date_raw else datetime.now()
+        kwdates = {'stationday_fk__stationday_date__gte': start_date, 'stationday_fk__stationday_date__lte': end_date}
+        stationobj = get_object_or_404(Stations, station_name=network + '_' + station)
+        if fields_raw:
+            fields = fields_raw.split(',')
+        else:
+            fields = ['high', 'low', 'avg']
+        plot_data = {'network': network, 'station': station, 'channel': channel, 'data': []}
+        if channel.endswith('V'):
+            plot_data['units'] = 'Volts DC'
+        else:
+            plot_data['units'] = 'Whatever is this?'
+        if 'alert' in fields:
+            alert_values = Alerts.objects.filter(stationday_fk__station_fk=stationobj).values_list('stationday_fk__stationday_date', 'alert_text').order_by('-stationday_fk__stationday_date')
+            alerts = []
+            for date, alert in alert_values:
+                alerts.append({'date': str(date), 'value': alert})
+            plot_data['alerts'] = alerts
+        if 'high' in fields or 'low' in fields or 'avg' in fields:
+            channel_values = ValuesAhl.objects.filter(**kwdates).filter(stationday_fk__station_fk=stationobj, channel_fk__channel=channel).values_list('stationday_fk__stationday_date', 'high_value', 'avg_value', 'low_value').order_by('-stationday_fk__stationday_date')
+            high_values = []
+            avg_values = []
+            low_values = []
+            for date, high_value, avg_value, low_value in channel_values.all():
+                high_values.append({'date': date.strftime('%Y-%j'), 'value': high_value})
+                avg_values.append({'date': date.strftime('%Y-%j'), 'value': avg_value})
+                low_values.append({'date': date.strftime('%Y-%j'), 'value': low_value})
+            if 'avg' in fields:
+                plot_data['data'].append({'id': 'Average', 'values': avg_values})
+            if 'high' in fields:
+                plot_data['data'].append({'id': 'High', 'values': high_values})
+            if 'low' in fields:
+                plot_data['data'].append({'id': 'Low', 'values': low_values})
+    else:
+        plot_data = {'error': 'unknown request'}
+    return JsonResponse(plot_data)
+
+
+def channel_level(request, network, station, channel):
+
+    return render(request, 'falcon/channel.html',
+                  {'network': network,
+                   'station': station,
+                   'channel': channel,
+                   })
+
 
 def process_opaque_files(opaque_files):
     'Pass the files to ofadump and extract the necessary parameters for database insertion'
@@ -148,15 +186,15 @@ def process_opaque_files(opaque_files):
         jday = tmp[-2].split('_')[-1]
         opaque_filename = tmp[-1]
         # get or create Station
-        # sta, _ = Stations.objects.get_or_create(station_name=net_sta)
+        sta, _ = Stations.objects.get_or_create(station_name=net_sta)
         
         # update or create Stationday, lastly update for OFA/OFC file mod times
         # staday_id, _ = Stationdays.objects.get_or_create(station_fk=sta_id,
         #                                                  stationday_date=UTCDateTime('%s,%s' % (year, jday)).date)
         opaque_fmt = datetime.fromtimestamp(os.path.getmtime(opaque)).replace(tzinfo=tz.gettz('UTC'))
         
-        staday, _ = Stationdays.objects.get_or_create(station_fk__station_name=net_sta,
-                                                             stationday_date=datetime.strptime('%s,%s' % (year, jday), '%Y,%j'))
+        staday, _ = Stationdays.objects.get_or_create(station_fk=sta,
+                                                             stationday_date=UTCDateTime('%s,%s' % (year, jday)).datetime)
 
         # OFC VALUES
         if 'OFC' in opaque_filename:

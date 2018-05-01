@@ -2,6 +2,7 @@ from django.http import HttpResponse, JsonResponse
 from django.shortcuts import render, get_object_or_404
 from django.template import loader
 from falcon.models import Stations, Stationdays, Channels, Alerts, ValuesAhl
+from falcon.forms.userscale import UserScalingForm
 
 import json
 import glob
@@ -123,22 +124,33 @@ def api_channel_data(request, network, station, channel):
     Grab data for a specific Channel
     """
     if request.method == 'GET':
-        fields_raw = request.GET.get('fields', None)
-        start_date_raw = request.GET.get('startdate', None)
-        start_date = datetime.strptime(start_date_raw, '%Y-%j %H:%M') if start_date_raw else datetime.now() + timedelta(-60)
-        end_date_raw = request.GET.get('enddate', None)
-        end_date = datetime.strptime(end_date_raw, '%Y-%j %H:%M') if end_date_raw else datetime.now()
+        fields_raw = request.GET.get('fields')
+        start_date_raw = request.GET.get('startdate')
+        start_date = datetime.strptime(start_date_raw, '%Y-%m-%d') if start_date_raw else datetime.now() - timedelta(60)
+        start_date = datetime(year=start_date.year, month=start_date.month, day=start_date.day, hour=0, minute=0, second=0)  # Remove time
+        end_date_raw = request.GET.get('enddate')
+        end_date = datetime.strptime(end_date_raw, '%Y-%m-%d') if end_date_raw else datetime.now()
+        end_date = datetime(year=end_date.year, month=end_date.month, day=end_date.day, hour=0, minute=0, second=0)  # remove time
+        ymin = request.GET.get('ymin')
+        ymax = request.GET.get('ymax')
         kwdates = {'stationday_fk__stationday_date__gte': start_date, 'stationday_fk__stationday_date__lte': end_date}
         stationobj = get_object_or_404(Stations, station_name=network + '_' + station)
         if fields_raw:
             fields = fields_raw.split(',')
         else:
             fields = ['high', 'low', 'avg']
-        plot_data = {'network': network, 'station': station, 'channel': channel, 'data': []}
+        plot_data = {'network': network,
+                     'station': station,
+                     'channel': channel,
+                     'startdate': start_date.strftime('%Y-%m-%d'),
+                     'enddate': end_date.strftime('%Y-%m-%d'),
+                     'ymin': ymin,
+                     'ymax': ymax,
+                     'data': []}
         if channel.endswith('V'):
             plot_data['units'] = 'Volts DC'
         else:
-            plot_data['units'] = 'Whatever is this?'
+            plot_data['units'] = 'Whatever this is?'
         if 'alert' in fields:
             alert_values = Alerts.objects.filter(stationday_fk__station_fk=stationobj).values_list('stationday_fk__stationday_date', 'alert_text').order_by('-stationday_fk__stationday_date')
             alerts = []
@@ -151,9 +163,9 @@ def api_channel_data(request, network, station, channel):
             avg_values = []
             low_values = []
             for date, high_value, avg_value, low_value in channel_values.all():
-                high_values.append({'date': date.strftime('%Y-%j'), 'value': high_value})
-                avg_values.append({'date': date.strftime('%Y-%j'), 'value': avg_value})
-                low_values.append({'date': date.strftime('%Y-%j'), 'value': low_value})
+                high_values.append({'date': date.strftime('%Y-%m-%d'), 'value': high_value})
+                avg_values.append({'date': date.strftime('%Y-%m-%d'), 'value': avg_value})
+                low_values.append({'date': date.strftime('%Y-%m-%d'), 'value': low_value})
             if 'avg' in fields:
                 plot_data['data'].append({'id': 'Average', 'values': avg_values})
             if 'high' in fields:
@@ -166,11 +178,15 @@ def api_channel_data(request, network, station, channel):
 
 
 def channel_level(request, network, station, channel):
-
+    parameters = request.GET.dict()
+    # process_opaque_files(glob.glob('/msd/%s/%s/90_OF[AC].512.seed' % ('-'.join([network, station]), stationdate.strftime('%Y/%j'))))
+    # process_opaque_files(glob.glob('/tr1/telemetry_days/%s/%s/90_OF[AC].512.seed' % ('-'.join([network, station]), stationdate.strftime('%Y/%Y_%j'))))
     return render(request, 'falcon/channel.html',
                   {'network': network,
                    'station': station,
                    'channel': channel,
+                   'parameters': parameters,
+                   'userscalingform': UserScalingForm()
                    })
 
 

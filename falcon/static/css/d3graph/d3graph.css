@@ -1,21 +1,44 @@
-body { font: 20px Arial;}
+/* CSS for channel graphing */
 
-path {
-    stroke: steelblue;
-    stroke-width: 2;
-    fill: none;
+body {
+    font: 20px Arial;
 }
 
-.axis path,
+/* Important to have clip function on line class */
+.line {
+  fill: none;
+  stroke-width: 1.5px;
+  clip-path: url(#clip);
+}
+
 .axis line {
     fill: none;
     stroke: grey;
     stroke-width: 1;
     shape-rendering: crispEdges;
 }
-.axis { font: 16px Arial; }
+
+.axis {
+    font: 16px Arial;
+}
 
 .tick line{
   opacity: 0.2;
   stroke-dasharray: 5,5;
+}
+
+rect.zoom {
+  stroke: steelblue;
+  fill-opacity: 0.5;
+  fill: #f2f2f2;
+}
+
+rect.legend {
+  font: 16px Arial;
+  fill: #f2f2f2;
+}
+
+graphtitle {
+  font: 48px Arial;
+  font-weight: bold;
 }

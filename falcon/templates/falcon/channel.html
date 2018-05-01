@@ -3,27 +3,50 @@
 
 {% block content %}
 
-<h1>Channel: {{ network }}-{{ station }}-{{ channel }}</h1>
+<script type="text/javascript" src="{% static 'assays/js/jquery-3.2.1.min.js' %}"></script>
+<script type="text/javascript" src="{% static 'assays/js/jquery-ui.min.js' %}"></script>
+<script type="text/javascript" src="{% static 'assays/js/jquery.datetimepicker.full.min.js' %}"></script>
+<link href="{% static 'assays/css/jquery.datetimepicker.min.css' %}" rel="stylesheet">
+<link href="{% static 'assays/css/jquery-ui.min.css' %}" rel="stylesheet">
+
+<div style="width: 1150px">
+    <input type="button" style="font-weight:bold; float:right; margin-right:0px; margin-top:20px; font-style:bold; vertical-align:top;" value="Download Graph" onclick="exportGraph()">
+    <input type="button" style="font-weight:bold; float:right; margin-right:0px; margin-top:20px; font-style:bold; vertical-align:top;" value="User Scaling" onclick="userScaling()">
+</div>
+
+<div id="userScale" title="Input User Scaling" class="ui-widget ui-corner-all" style="display:none">
+    Y Autoscale: <input type="checkbox" name="yautoscale" id="id_yautoscale" onclick="yAutoScale(this)">
+    <form id="userScaleForm">
+        <table class='no_error'>
+            {{ userscalingform.as_table }}
+        </table>
+        <input id="user_scale_submit" type="submit" hidden/>
+    </form>
+</div>
+
+<div id="graph" style="clear:both;"></div>
 <script type="text/javascript">
     $(document).ready(function () {
         $.ajax( {
             dataType: 'json',
             url: "{% url 'channel_data' network=network  station=station channel=channel %}",
-            data: {startdate: '2017-1 00:00', enddate: '2018-91 00:00'},
+            data: {{ parameters|safe }},
             success: function ( json ) {
-                console.log(json);
                 document.plot_data = json;
+                console.log(document.plot_data);
                 buildGraph();
             },
             error: function () {
                 alert('Error getting channel data');
             }
         } );
+        document.channel_url = "{% url 'channel_level' network=network  station=station channel=channel %}";
+        document.graph_title = "Channel: {{ network }}-{{ station }}-{{ channel }}"
     });
 </script>
 
-<script src="http://d3js.org/d3.v3.min.js"></script>
-<script src="{% static '/js/d3.legend.js' %}"></script>
+<script src="http://d3js.org/d3.v5.min.js"></script>
+<script type="text/javascript" src="{% static '/js/d3graph/saveSvgAsPng.js' %}"></script>
 <script src="{% static '/js/d3graph/channel.js' %}"></script>
 <link href="{% static '/css/d3graph/d3graph.css' %}" rel="stylesheet">
 

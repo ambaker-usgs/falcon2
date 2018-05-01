@@ -1,128 +1,327 @@
 function buildGraph()
 {
-    // Set the dimensions of the canvas / graph
-    var margin = {top: 30, right: 20, bottom: 110, left: 70},
-        width = 1200 - margin.left - margin.right,
-        height = 740 - margin.top - margin.bottom;
+    // Base width and height of entire graph including axis, labels, legend
+    var svgWidth = 1200;
+    var svgHeight = 740;
 
-    // Parse the date / time
-    var parseDate = d3.time.format("%Y-%j").parse;
+    // Margins for data plot part of graph
+    var margin = {top: 40, right: 20, bottom: 130, left: 70};
 
-    // Set the ranges
-    var x = d3.time.scale().range([0, width]);
-    var y = d3.scale.linear().range([height, 0]);
+    // Area for data plot part of graph
+    width = svgWidth - margin.left - margin.right,
+    height = svgHeight - margin.top - margin.bottom;
 
-    // Define the axes
-    var xAxis = d3.svg.axis()
-        .scale(x)
-        .orient("bottom")
-        //.ticks(10)
-        .innerTickSize(-height)
+    // Legend location and size
+    var legend_width = 400;
+    var legend_height = 50;
+//    var legendx = svgWidth/2 - legend_width/2 - margin.right;
+//    var legendy = svgHeight - legend_height - margin.top;
+    var legendx = svgWidth - legend_width - margin.left - margin.right;
+    var legendy = 0;
+    // Function to Parse the date / time
+    var parseDate = d3.timeParse("%Y-%m-%d");
+
+    // Go through data and parse dates
+    document.plot_data.data.map(function(item) {
+        item.values.map(function(d) {
+                d.date = parseDate(d.date);
+        });
+    });
+
+    // Create X scale, both current and initial
+    var Xdomain = [];
+    if(document.plot_data.startdate)
+        Xdomain = [parseDate(document.plot_data.startdate), parseDate(document.plot_data.enddate)];
+    else
+        Xdomain = d3.extent(document.plot_data.data[0].values, function(d) { return d.date; });
+    var xScale = d3.scaleTime()
+        .range([0, width])
+        .domain(Xdomain);
+    var xScale0 = d3.scaleTime()
+        .range([0, width])
+        .domain(Xdomain);
+
+    // Create Y scale, both current and initial. Use plot data to get ymin and ymax with 2% margin from edge of graph initially
+    var ymin = document.plot_data.ymin ? document.plot_data.ymin : d3.min(document.plot_data.data, function(d) { return d3.min(d.values, function(v) { return v.value - (v.value * 0.02); }); });
+    var ymax = document.plot_data.ymax ? document.plot_data.ymax : d3.max(document.plot_data.data, function(d) { return d3.max(d.values, function(v) { return v.value + (v.value * 0.02); }); });
+    if(!document.plot_data.ymin || !document.plot_data.ymax)
+    {
+        document.plot_data.ymin = ymin
+        document.plot_data.ymax = ymax
+    }
+    var yScale = d3.scaleLinear()
+        .range([height, 0])
+        .domain([ymin, ymax]);
+    var yScale0 = d3.scaleLinear()
+        .range([height, 0])
+        .domain([ymin, ymax]);
+
+    // Create X axis
+    var xAxis = d3.axisBottom(xScale)
+        .tickFormat(d3.timeFormat("%d-%b-%Y"))
         .tickPadding(10);
 
-    var yAxis = d3.svg.axis()
-        .scale(y)
-        .orient("left")
-        //.ticks(10)
-        .innerTickSize(-width)
+    var tdiff = Xdomain[1] - Xdomain[0];
+    console.log(Xdomain);
+    if(tdiff > 182*24*60*60*1000)
+        xAxis.tickFormat(d3.timeFormat("%b-%Y"));
+
+    // Create Y axis
+    var yAxis = d3.axisLeft(yScale)
         .tickPadding(10);
 
-    // Define the line
-    var valueline = d3.svg.line()
-        .x(function(d) { return x(d.date); })
-        .y(function(d) { return y(d.value); });
+    // Define zoom function
+    var zoom = d3.zoom()
+        .scaleExtent([1, 50])
+        .translateExtent([[0, 0], [width, height]])
+        .extent([[0, 0], [width, height]])
+        .on("zoom", updateZoom);
 
-    // Adds the svg canvas
-    var svg = d3.select("body")
-        .append("svg")
-            .attr("width", width + margin.left + margin.right)
-            .attr("height", height + margin.top + margin.bottom)
+    // This function creates the plot lines for graph passing in data
+    var plotLine = d3.line()
+        .x(function(d) { return xScale(d.date); })
+        .y(function(d) { return yScale(d.value); });
+
+    // Create the svg canvas
+    var svg = d3.select("#graph").append("svg")
+        .attr("id", "svggraph")
+        .attr("width", width + margin.left + margin.right)
+        .attr("height", height + margin.top + margin.bottom)
         .append("g")
-            .attr("transform",
-                  "translate(" + margin.left + "," + margin.top + ")")
-        //.call(d3.behavior.zoom().on("zoom", function () {svg.attr("transform", "translate(" + d3.event.translate + ")" + " scale(" + d3.event.scale + ")")}));
+            .attr("transform", "translate(" + margin.left + "," + margin.top + ")");
 
-        svg.append("rect")
-            .attr("width", width)
-            .attr("height", height)
-            .attr("fill", "#f2f2f2")
-            .style("stroke", "black")
-            .style("stroke-width", 1);
+    // Create the clip region so that data does not plot outside plot area, css uses this
+    svg.append("defs").append("clipPath")
+        .attr("id", "clip")
+       .append("rect")
+        .attr("width", width)
+        .attr("height", height);
 
+    // create zoom portal in background and set mousemove and mouseup events on this object
+    var zoomrect = svg.append("rect")
+        .attr("class", "zoom")
+        .attr("width", width)
+        .attr("height", height)
+        // On mouse down process the event
+        .on("mousedown", function() {
+            var e = this,
+            origin = d3.mouse(e),
+            rect = svg.append("rect").attr("class", "zoom");
+            d3.select("#graph").classed("noselect", true);
+            origin[0] = Math.max(0, Math.min(width, origin[0]));
+            origin[1] = Math.max(0, Math.min(height, origin[1]));
+            // Set action for mouse event
+            d3.select(window)
+                // On mousemove display a selection rect
+                .on("mousemove.zoomRect", function() {
+                     var m = d3.mouse(e);
+                     m[0] = Math.max(0, Math.min(width, m[0]));
+                     m[1] = Math.max(0, Math.min(height, m[1]));
+                     rect.attr("x", Math.min(origin[0], m[0]))
+                     .attr("y", Math.min(origin[1], m[1]))
+                     .attr("width", Math.abs(m[0] - origin[0]))
+                     .attr("height", Math.abs(m[1] - origin[1]));
+                })
+                // On mouse up zoom to that rect
+                .on("mouseup.zoomRect", function() {
+                    d3.select(window).on("mousemove.zoomRect", null).on("mouseup.zoomRect", null);
+                    d3.select("#graph").classed("noselect", false);
+                    var m = d3.mouse(e);
+                    m[0] = Math.max(0, Math.min(width, m[0]));
+                    m[1] = Math.max(0, Math.min(height, m[1]));
+                    console.log(origin[0]);
+                    console.log(m[0]);
+                    // Translate screen coordinates into plotting coordinates using the scales
+                    if (m[0] !== origin[0] && m[1] !== origin[1]) {
+                        xScale.domain([origin[0], m[0]].map(xScale.invert).sort(sortByDateAscending));
+                        yScale.domain([origin[1], m[1]].map(yScale.invert).sort());
+                    }
+                    console.log(xScale.domain());
+                    rect.remove();
+                    updateZoom()
+                }, true);
+            // The event stops here
+            d3.event.stopPropagation();
+            })
 
-    // Get the data
-    //d3.csv("data.csv", function(error, data) {
-        //document.plot_data = [
-        //{'id': 'Average', 'values': [{'date': '2017-345', 'value': 28.13}, {'date': '2017-346', 'value': 59.13}, {'date': '2017-347', 'value': 43.0}]},
-        //{'id': 'High', 'values': [{'date': '2017-345', 'value': 32.13}, {'date': '2017-346', 'value': 63.13}, {'date': '2017-347', 'value': 45.0}]},
-        //{'id': 'Low', 'values': [{'date': '2017-345', 'value': 26.13}, {'date': '2017-346', 'value': 55.13}, {'date': '2017-347', 'value': 40.0}]}
-        //];
+    // Add Y gridlines
+    var gridY = svg.append("g")
+        .attr("class", "grid")
+        .call(d3.axisLeft(yScale)
+            .tickSize(-width)
+            .tickFormat(""));
 
-        document.plot_data.data.map(function(item) {
-            item.values.map(function(d) {
-                    d.date = parseDate(d.date);
-                    //d.value = +d.value;
-            });
-        });
+    // Add X gridlines
+    var gridX = svg.append("g")
+        .attr("class", "grid")
+        .call(d3.axisBottom(xScale)
+        .tickSize(height)
+        .tickFormat(""));
 
-        // Scale the range of the data
-        x.domain(d3.extent(document.plot_data.data[0].values, function(d) { return d.date; }));
-        y.domain([
-         d3.min(document.plot_data.data, function(d) { return d3.min(d.values, function(v) { return v.value; }); }),
-         d3.max(document.plot_data.data, function(d) { return d3.max(d.values, function(v) { return v.value; }); })
-        ]);
+    // Add legend
+    svg.append("rect")
+        .attr("width", legend_width)
+        .attr("height", legend_height)
+        .attr("class","legend")
+        .attr("transform","translate(" + legendx + "," + legendy + ")")
+        .attr("fill", "none")
+        .style("font-size","1em")
+        .style("stroke", "black")
+        .style("stroke-width", 1);
 
-        var color = d3.scale.category10();
+    // Set color mapping for plot lines
+    var color = d3.scaleOrdinal(d3.schemeCategory10);
 
-        document.plot_data.data.forEach(function(d) {
-            // Add the valueline path.
-            svg.append("path")
-                .attr("class", "line")
-                .attr("d", valueline(d.values))
-                .style("stroke", function() { return d.color = color(d.id); })
-                .attr("data-legend", d.id);
-        });
-
-        // Add the X Axis
-        svg.append("g")
-            .attr("class", "x axis")
-            .attr("transform", "translate(0," + height + ")")
-            .style("font", "1em")
-            .call(xAxis.tickFormat(d3.time.format("%Y-%j")))
-            .selectAll("text")
-                .style("text-anchor", "end")
-                .attr("dx", "-.8em")
-                .attr("dy", ".15em")
-                .attr("transform", function(d) { return "rotate(-65)" });
-
-        // Add the Y Axis
-        svg.append("g")
-            .attr("class", "y axis")
-            .call(yAxis)
-
-        // Y axis label
+    // Create the plot lines, looping through each data set
+    var plots = [];
+    document.plot_data.data.forEach(function(d, i) {
+        plots.push(svg.append("path")
+                      .attr("class", "line")  // This formats lines
+                      .attr("d", plotLine(d.values))  // This creates plot data
+                      .style("stroke", function() { return d.color = color(d.id); }))  // This sets color
+        // Build the legend line/text for each data set
+        currentx = 20 + (i * 117);
         svg.append("text")
-            .attr("transform", "rotate(-90)")
-            .attr("y", 0-50)
-            .attr("x", 0-(height/2))
-            .style("text-anchor", "middle")
-            .text(document.plot_data.units);
+            .attr("x", legendx + currentx + 30)
+            .attr("y", legendy + legend_height/2 + 7)
+            .attr("class", "legend")
+            .style("fill", function() {return d.color = color(d.id)})
+            .text(d.id);
+        svg.append("line")
+            .attr("x1", legendx + currentx)
+            .attr("y1", legendy + legend_height/2)
+            .attr("x2", legendx + currentx + 20)
+            .attr("y2", legendy + legend_height/2)
+            .style("stroke", function() {return d.color = color(d.id)});
+    });
 
-        // X axis label
-        svg.append("text")
-            .attr("x", width/2)
-            .attr("y", height+100)
-            .style("text-anchor", "middle")
-            .text('Date');
+    // Add the X Axis
+    var gX = svg.append("g")
+        .attr("class", "x axis")
+        .attr("transform", "translate(0," + height + ")")
+        .style("font", "1em")
+        .call(xAxis)
+        .selectAll("text")
+            .style("text-anchor", "end")
+            .attr("dx", "-.8em")
+            .attr("dy", ".15em")
+            .attr("transform", "rotate(-65)");
 
-        var legendx = width-150;
-        var legendy = height - 70;
-        svg.append("g")
-            .attr("class","legend")
-            .attr("transform","translate(" + legendx + "," + legendy + ")")
-            .attr("fill", "white")
-            .style("font-size","1em")
-            .call(d3.legend);
-        d3.selectAll(".legend-items text").style("fill", "black");
-    //});
+    // Add the Y Axis
+    var gY = svg.append("g")
+        .attr("class", "axis axis--y")
+        .call(yAxis)
+
+    // Y axis label
+    svg.append("text")
+        .attr("transform", "rotate(-90)")
+        .attr("y", 0-55)
+        .attr("x", 0-(height/2))
+        .style("text-anchor", "middle")
+        .text(document.plot_data.units);
+
+    // X axis label
+    svg.append("text")
+        .attr("x", width/2)
+        .attr("y", height+120)
+        .style("text-anchor", "middle")
+        .text('Date');
+
+    // Title
+    svg.append("text")
+        .attr("class", "graphtitle")
+        .attr("x", width/2)
+        .attr("y", -25)
+        .style("text-anchor", "middle")
+        .text(document.graph_title);
+
+    // This is the heart of the zoom
+    function updateZoom() {
+
+        // Update the x and y axis and tick labels
+
+        // Set the x axis tick label format
+        tdiff = Math.abs(xScale.domain()[1] - xScale.domain()[0]);
+        if(tdiff > 182*24*60*60*1000)
+            xAxis.tickFormat(d3.timeFormat("%b-%Y"));
+        else
+            xAxis.tickFormat(d3.timeFormat("%d-%b-%Y"));
+
+        // Actually remove and redraw x axis
+        gX.remove();
+        gX = svg.append("g")
+        .attr("class", "x axis")
+        .attr("transform", "translate(0," + height + ")")
+        .style("font", "1em")
+        .call(xAxis.scale(xScale))
+        .selectAll("text")
+            .style("text-anchor", "end")
+            .attr("dx", "-.8em")
+            .attr("dy", ".15em")
+            .attr("transform", "rotate(-65)");
+
+        gY.call(yAxis.scale(yScale));
+
+        // Update the grid in the plot area
+        gridX.call(d3.axisBottom(xScale)
+            .tickSize(height)
+            .tickFormat(""));
+        gridY.call(d3.axisLeft(yScale)
+            .tickSize(-width)
+            .tickFormat(""));
+
+        // Redraw the data plot lines
+        plots.forEach(function(d, i) {
+            d.attr("d", plotLine(document.plot_data.data[i].values))
+        });
+    }
+}
+
+// Set up the user scale inpout dialog
+scaledialog = $("#userScale").dialog({
+    autoOpen: false,
+    height: 320,
+    width: 400,
+    modal: true,
+    buttons: {
+    "Update": function() {$('#user_scale_submit').click()},
+    "Cancel": function() {scaledialog.dialog("close");}
+    },
+});
+
+// Load the user scaling input form
+function userScaling()
+{
+    $('#id_startdate').datepicker({dateFormat: "yy-mm-dd"}).val(document.plot_data.startdate);
+    $('#id_enddate').datepicker({dateFormat: "yy-mm-dd"}).val(document.plot_data.enddate);
+    $('#id_ymin').val(document.plot_data.ymin);
+    $('#id_ymax').val(document.plot_data.ymax);
+    $('#userScaleForm input:text').css('margin-left', '10px');
+    scaledialog.dialog( "open" );
+}
+
+// If autoscale selected then disable ymin/ymax inputs
+function yAutoScale(checkobj)
+{
+    var obj = $(checkobj);
+    if(obj.is(':checked'))
+    {
+        $("[id^=id_ym]").attr("disabled", "disabled");
+    }
+    else
+    {
+        $("[id^=id_ym]").removeAttr("disabled", "disabled");
+    }
+}
+
+// Export the graph to a png
+function exportGraph()
+{
+    saveSvgAsPng(document.getElementById("svggraph"), "diagram.png", { backgroundColor: 'white'});
+}
+
+// Sort algorithm for dates
+function sortByDateAscending(a, b) {
+    // Dates will be cast to numbers automagically:
+    return a.date - b.date;
 }

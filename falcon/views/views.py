@@ -73,7 +73,7 @@ def index(request):
     stations = []
     alerts = Alerts.objects.select_related('stationday_fk','stationday_fk__station_fk').filter(stationday_fk__stationday_date__gte=now - timedelta(60))
     for net_sta in net_stas:
-        alert = alerts.filter(stationday_fk__station_fk__station_name=net_sta)
+        alert = alerts.filter(stationday_fk__station_fk__station_name=net_sta).filter(stationday_fk__stationday_date__gte=now - timedelta(60)).order_by('-alert_text')
         stations.append(StationOverview(net_sta, alert))
     template = loader.get_template('falcon/overall.html')
     context = {
@@ -91,7 +91,7 @@ def network_level(request, network='*'):
     stations = []
     alerts = Alerts.objects.select_related('stationday_fk','stationday_fk__station_fk').filter(stationday_fk__stationday_date__gte=now - timedelta(60))
     for net_sta in net_stas:
-        alert = alerts.filter(stationday_fk__station_fk=net_sta)
+        alert = alerts.filter(stationday_fk__station_fk=net_sta).filter(stationday_fk__stationday_date__gte=now - timedelta(60)).order_by('-alert_text')
         stations.append(StationOverview(net_sta, alert))
     template = loader.get_template('falcon/overall.html')
     context = {
@@ -243,27 +243,4 @@ def process_opaque_files(opaque_files):
             # then, get the average, high, and low values
             for chan in values_dict:
                 val_avg = sum(values_dict[chan][0])/len(values_dict[chan][0])
-                val_high = max(values_dict[chan][0])
-                val_low = min(values_dict[chan][0])
                 
-                # find appropriate channel and add to values table
-                channel, _ = Channels.objects.get_or_create(channel=chan)
-                
-                value, _ = ValuesAhl.objects.get_or_create(stationday_fk=staday,
-                                                                channel_fk=channel)
-                value.stationday_fk = staday
-                value.channel_fk = channel
-                value.avg_value = val_avg
-                value.high_value = val_high
-                value.low_value = val_low
-                value.save()
-        # OFA ALERTS
-        elif 'OFA' in opaque_filename:
-            staday.ofa_mod_ts = opaque_fmt
-            staday.save()
-
-            # also add the alert to the alerts table
-            alerts = subprocess.getoutput(ofadump % ('f', opaque)).split('\n')
-            for alert in alerts:
-                alert_obj, _ = Alerts.objects.get_or_create(stationday_fk=staday, alert_text=alert)
-

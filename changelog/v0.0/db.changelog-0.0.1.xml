@@ -1,0 +1,143 @@
+<?xml version="1.1" encoding="UTF-8" standalone="no"?>
+<databaseChangeLog xmlns="http://www.liquibase.org/xml/ns/dbchangelog" xmlns:ext="http://www.liquibase.org/xml/ns/dbchangelog-ext" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog-ext http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-ext.xsd http://www.liquibase.org/xml/ns/dbchangelog http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-3.5.xsd">
+    <changeSet author="dwitte" id="0.0.0-1">
+        <createTable tableName="alerts">
+            <column autoIncrement="true" name="alert_id" type="BIGSERIAL">
+                <constraints primaryKey="true" primaryKeyName="alerts_pkey"/>
+            </column>
+            <column name="alert_text" type="TEXT">
+                <constraints nullable="false"/>
+            </column>
+            <column name="stationday_fk" type="BIGINT">
+                <constraints nullable="false"/>
+            </column>
+        </createTable>
+    </changeSet>
+    <changeSet author="dwitte" id="0.0.0-2">
+        <createTable tableName="channels">
+            <column autoIncrement="true" name="channel_id" type="BIGSERIAL">
+                <constraints primaryKey="true" primaryKeyName="channels_pkey"/>
+            </column>
+            <column name="channel" type="TEXT">
+                <constraints nullable="false" unique="true"/>
+            </column>
+            <column name="units" type="TEXT">
+                <constraints nullable="true"/>
+            </column>
+            <column name="description" type="TEXT">
+                <constraints nullable="false"/>
+            </column>
+        </createTable>
+    </changeSet>
+    <changeSet author="dwitte" id="0.0.0-3">
+        <createTable tableName="stationdays">
+            <column autoIncrement="true" name="stationday_id" type="BIGSERIAL">
+                <constraints primaryKey="true" primaryKeyName="stationday_pkey"/>
+            </column>
+            <column name="station_fk" type="BIGINT">
+                <constraints nullable="false"/>
+            </column>
+            <column name="stationday_date" type="DATETIME">
+                <constraints nullable="false"/>
+            </column>
+            <column name="ofa_mod_ts" type="DATETIME">
+                <constraints nullable="true"/>
+            </column>
+            <column name="ofc_mod_ts" type="DATETIME">
+                <constraints nullable="true"/>
+            </column>
+        </createTable>
+    </changeSet>
+    <changeSet author="dwitte" id="0.0.0-4">
+        <createTable tableName="stations">
+            <column autoIncrement="true" name="station_id" type="BIGSERIAL">
+                <constraints primaryKey="true" primaryKeyName="stations_pkey"/>
+            </column>
+            <column name="station_name" type="TEXT">
+                <constraints nullable="false" unique="true"/>
+            </column>
+        </createTable>
+    </changeSet>
+    <changeSet author="dwitte" id="0.0.0-5">
+        <createTable tableName="values_ahl">
+            <column autoIncrement="true" name="value_id" type="BIGSERIAL">
+                <constraints primaryKey="true" primaryKeyName="values_ahl_pkey"/>
+            </column>
+            <column name="stationday_fk" type="BIGINT">
+                <constraints nullable="false"/>
+            </column>
+            <column name="channel_fk" type="BIGINT">
+                <constraints nullable="false"/>
+            </column>
+            <column name="avg_value" type="DOUBLE PRECISION">
+                <constraints nullable="true"/>
+            </column>
+            <column name="low_value" type="DOUBLE PRECISION">
+                <constraints nullable="true"/>
+            </column>
+            <column name="high_value" type="DOUBLE PRECISION">
+                <constraints nullable="true"/>
+            </column>
+        </createTable>
+    </changeSet>
+    <changeSet author="dwitte" id="0.0.0-6">
+        <addForeignKeyConstraint baseTableName="alerts" baseColumnNames="stationday_fk" constraintName="alerts_stationday_fkey" deferrable="false" initiallyDeferred="false" onDelete="NO ACTION" onUpdate="NO ACTION" referencedTableName="stationdays" referencedColumnNames="stationday_id"/>
+        <addForeignKeyConstraint baseTableName="stationdays" baseColumnNames="station_fk" constraintName="stationdays_station_fkey" deferrable="false" initiallyDeferred="false" onDelete="NO ACTION" onUpdate="NO ACTION" referencedTableName="stations" referencedColumnNames="station_id"/>
+        <addForeignKeyConstraint baseTableName="values_ahl" baseColumnNames="stationday_fk" constraintName="values_stationday_fkey" deferrable="false" initiallyDeferred="false" onDelete="NO ACTION" onUpdate="NO ACTION" referencedTableName="stationdays" referencedColumnNames="stationday_id"/>
+        <addForeignKeyConstraint baseTableName="values_ahl" baseColumnNames="channel_fk" constraintName="values_channel_fkey" deferrable="false" initiallyDeferred="false" onDelete="NO ACTION" onUpdate="NO ACTION" referencedTableName="channels" referencedColumnNames="channel_id"/>
+    </changeSet>
+    <changeSet author="dwitte" id="0.0.0-7">
+        <sql>
+            INSERT INTO channels(channel, description, units)
+            VALUES ('AC',   'AC Power Has Failed or the AC Breaker Has Tripped', NULL),
+                   ('ACC',  'AC Current Commercial', 'Amps AC'),
+                   ('B1V',  'Battery #1', 'Volts DC'),
+                   ('B2V',  'Battery #2', 'Volts DC'),
+                   ('B3V',  'Battery #3', 'Volts DC'),
+                   ('B4V',  'Battery #4', 'Volts DC'),
+                   ('B5V',  'Battery #5', 'Volts DC'),
+                   ('B6V',  'Battery #6', 'Volts DC'),
+                   ('B7V',  'Battery #7', 'Volts DC'),
+                   ('B8V',  'Battery #8', 'Volts DC'),
+                   ('B9V',  'Battery #9', 'Volts DC'),
+                   ('B10V', 'Battery #10', 'Volts DC'),
+                   ('B11V', 'Battery #11', 'Volts DC'),
+                   ('B12V', 'Battery #12', 'Volts DC'),
+                   ('BT',   'Battery Temperature', 'Degrees F'),
+                   ('CHT1', 'CMG3TB Heat Tape Current #1', 'Amps'),
+                   ('CHT2', 'CMG3TB Heat Tape Current #2', 'Amps'),
+                   ('CT',   'CMG3TB Temperature', 'Degrees F'),
+                   ('DCA',  'DC Current Monitor', 'Amps DC'),
+                   ('DCI',  'Duration of Peak Discharge Current', 'Seconds'),
+                   ('DCV',  'DC Voltage Monitor', 'Volts DC'),
+                   ('DCV1', 'DC Voltage Monitor #1', 'Volts DC'),
+                   ('DCV2', 'DC Voltage Monitor #2', 'Volts DC'),
+                   ('DS',   'Door is Open', NULL),
+                   ('DS2',  'Door is Open (secondary door)', NULL),
+                   ('FE',   'Fiber Error', NULL),
+                   ('IHS',  'Internal Humidity Sensor', NULL),
+                   ('Indoor t', 'Indoor Temperature', 'Degrees F'),
+                   ('ITS',  'Internal Temperature Sensor', NULL),
+                   ('KT',   'KS54000 Temperature', 'Degrees F'),
+                   ('KHT1', 'KS54000 Heat Tape #1 Current', 'Amps'),
+                   ('KHT2', 'KS54000 Heat Tape #2 Current', 'Amps'),
+                   ('OFC',  'Not receiving data files from Falcon', NULL),
+                   ('PDI',  'Peak Discharge Current', 'Amps'),
+                   ('PVA',  'PV Array Voltage', 'Volts'),
+                   ('SHT1', 'STS-2 Heat Tape #1 Current', 'Amps'),
+                   ('SHT2', 'STS-2 Heat Tape #2 Current', 'Amps'),
+                   ('SR',   'Solar Radiation', NULL),
+                   ('ST',   'STS-2 Temperature', 'Degrees F'),
+                   ('SVT',  'STS-2 Vault Temperature', 'Degrees F'),
+                   ('VT',   'Vault Temperature', 'Degrees F'),
+                   ('WD',   'Water Detected', NULL),
+                   ('WD1',  'Water Detected in Overpack #1', NULL),
+                   ('WD2',  'Water Detected in Overpack #2', NULL),
+                   ('WD3',  'Water Detected in Overpack #3', NULL),
+                   ('WG1',  'Wind Generator 1st Phase', NULL),
+                   ('WG2',  'Wind Generator 2nd Phase', NULL),
+                   ('WG3',  'Wind Generator 3rd Phase', NULL),
+                   ('WS',   'Wind Speed', 'Knots');
+        </sql>
+    </changeSet>
+</databaseChangeLog>

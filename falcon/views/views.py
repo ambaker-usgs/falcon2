@@ -6,8 +6,12 @@ from falcon.forms.userscale import UserScalingForm
 
 import json
 import glob
+import itertools
 import subprocess
 from datetime import datetime, timedelta
+from multiprocessing import pool
+
+threadcount = 10
 
 class StationOverview(object):
     def __init__(self, netsta, alerts, alert_days_back=15):
@@ -47,7 +51,7 @@ class StationOverview(object):
         #                                stationday_fk__stationday_date__gte=self.most_recent_stationday.stationday_date - timedelta(7)).order_by('-alert_text')
         # alerts = Alerts.objects.filter(stationday_fk__station_fk=self.station,
         #                                stationday_fk__stationday_date__gte=self.most_recent_stationday.stationday_date - timedelta(7)).order_by('-alert_text')
-        alerts.filter(stationday_fk__stationday_date__gte=self.most_recent_stationday.stationday_date - timedelta(alert_days_back)).order_by('-alert_text')
+        ## alerts.filter(stationday_fk__stationday_date__gte=self.most_recent_stationday.stationday_date - timedelta(alert_days_back)).order_by('-alert_text')
         # alerts.filter(stationday_fk__stationday_date=self.most_recent_stationday.stationday_date).order_by('-alert_text')
         #alerts = Alerts.objects.filter(stationday_fk__station_fk=self.station)
         #self.alerts = alerts.filter(stationday_fk__stationday_date__gte=self.most_recent_stationday.stationday_date - timedelta(alert_days_back))
@@ -65,16 +69,45 @@ class StationOverview(object):
         for alert in self.alerts_dict:
             self.station_warning_level = max(self.station_warning_level, 3 if self.alerts_dict[alert] else 1)
 
+def process_stations(net_sta):
+    before_t = datetime.now()
+    alert = Alerts.objects.filter(stationday_fk__station_fk__station_name=net_sta).filter(stationday_fk__stationday_date__gte=before_t - timedelta(60)).order_by('-alert_text')[:100]
+    during = datetime.today()
+    stn = StationOverview(net_sta, alert)
+    after = datetime.today()
+    if (during - before_t).seconds >= 1.0 or (after - during).seconds >= 1.0:
+        print('\t%s' % net_sta.station_name)
+        print('\tAlerts rcvd:  %.2f' % (during - before_t).seconds)
+        print('\tStation objd: %.2f' % (after - during).seconds)
+        print('\tAlerts ct:    %d' % alert.count())
+        print()
+    return stn
+
 # Create your views here.
 def index(request):
     'Overall view'
+    overall_time = datetime.today()
     net_stas = Stations.objects.all().order_by('station_name')
     now = datetime.today()
     stations = []
-    alerts = Alerts.objects.select_related('stationday_fk','stationday_fk__station_fk').filter(stationday_fk__stationday_date__gte=now - timedelta(60))
+    # alerts = Alerts.objects.select_related('stationday_fk','stationday_fk__station_fk').filter(stationday_fk__stationday_date__gte=now - timedelta(60))
+    alerts_gotten = datetime.today()
+    # mp_pool = pool.Pool(threadcount)
+    # stations = mp_pool.map(process_stations, net_stas)
     for net_sta in net_stas:
-        alert = alerts.filter(stationday_fk__station_fk__station_name=net_sta).filter(stationday_fk__stationday_date__gte=now - timedelta(60)).order_by('-alert_text')
-        stations.append(StationOverview(net_sta, alert))
+        stations.append(process_stations(net_sta))
+    # for net_sta in net_stas:
+    #     before_t = datetime.now()
+    #     alert = alerts.filter(stationday_fk__station_fk__station_name=net_sta).filter(stationday_fk__stationday_date__gte=now - timedelta(60)).order_by('-alert_text')
+    #     during = datetime.now()
+    #     stations.append(StationOverview(net_sta, alert))
+    #     after = datetime.now()
+    #     if (during - before_t).seconds >= 1.0 or (after - during).seconds >= 1.0:
+    #         print('\t%s' % net_sta.station_name)
+    #         print('\tAlerts rcvd:  %.2f' % (during - before_t).seconds)
+    #         print('\tStation objd: %.2f' % (after - during).seconds)
+    #         print('\tAlerts ct:    %d' % alert.count())
+    #         print()
     template = loader.get_template('falcon/overall.html')
     context = {
         'message': (datetime.today() - now).seconds,
@@ -82,6 +115,9 @@ def index(request):
     }
     #message = '<br>'.join(stations[10].channels_dict_sorted_keys)
     #return HttpResponse("Hello, world. You're at the 🦅 index. %ss" % (message))
+    print('Overall time: %.2f seconds' % (datetime.today() - overall_time).seconds)
+    print('Stations gtn: %.5f seconds' % (now - overall_time).seconds)
+    print('Alerts gottn: %.5f seconds' % (alerts_gotten - now).seconds)
     return HttpResponse(template.render(context, request))
 
 def network_level(request, network='*'):

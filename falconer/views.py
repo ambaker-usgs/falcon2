@@ -15,7 +15,7 @@ from falcon.models import Stations, Stationdays, Channels, Alerts, ValuesAhl
 def falconer(request):
     stationdate = UTCDateTime.now()
     return HttpResponse("Hello, a falcon has been dispatched!")
-    while stationdate >= UTCDateTime('%s,%s' % (UTCDateTime.now().year - 8, UTCDateTime.now().strftime('%j'))):
+    while stationdate >= UTCDateTime('%s,%s' % (UTCDateTime.now().year - 6, UTCDateTime.now().strftime('%j'))):
         process_opaque_files(glob.glob('/msd/*_*/%s/90_OF[AC].512.seed' % stationdate.strftime('%Y/%j')))
         process_opaque_files(glob.glob('/tr1/telemetry_days/*_*/%s/90_OF[AC].512.seed' % stationdate.strftime('%Y/%Y_%j')))
         stationdate -= 86400

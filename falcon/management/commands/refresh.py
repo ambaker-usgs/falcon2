@@ -2,6 +2,7 @@ from django.core.management.base import BaseCommand, CommandError
 from falcon.models import Stations, Stationdays, Channels, Alerts, ValuesAhl
 
 import glob
+import httplib2
 import os
 import subprocess   
 from datetime import datetime
@@ -26,6 +27,9 @@ class Command(BaseCommand):
 
 def falconer(refresh_depth):
     stationdate = UTCDateTime.now()
+    if refresh_depth == 'cache':
+        httplib2.Http().request('http://igskgacgvmdevwb.cr.usgs.gov:8000')
+        backdate = stationdate + 1
     if refresh_depth == 'shallow':
         backdate = stationdate - (86400 * shallow_days_back)
     if refresh_depth == 'deep':
@@ -110,4 +114,8 @@ def process_opaque_files(opaque_files):
             # also add the alert to the alerts table
             alerts = subprocess.getoutput(ofadump % ('f', opaque)).split('\n')
             for alert in alerts:
-                alert_obj, _ = Alerts.objects.get_or_create(stationday_fk=staday, alert_text=alert)
+                try:
+                    alert_obj, _ = Alerts.objects.get_or_create(stationday_fk=staday, alert_text=alert)
+                except Exception as e:
+                    print('!! %s' % e)
+                    print(staday, alert, alert_obj)

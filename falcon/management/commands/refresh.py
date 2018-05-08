@@ -28,7 +28,9 @@ class Command(BaseCommand):
 def falconer(refresh_depth):
     stationdate = UTCDateTime.now()
     if refresh_depth == 'cache':
-        httplib2.Http().request('http://igskgacgvmdevwb.cr.usgs.gov:8000')
+        base_url = 'http://igskgacgvmdevwb.cr.usgs.gov/falcon2/'
+        httplib2.Http().request(base_url)
+        httplib2.Http().request(base_url + 'IU/')
         backdate = stationdate + 1
     if refresh_depth == 'shallow':
         backdate = stationdate - (86400 * shallow_days_back)

@@ -9,6 +9,7 @@ import glob
 import subprocess
 from datetime import datetime, timedelta
 
+
 class StationOverview(object):
     def __init__(self, netsta, alerts, alert_days_back=15):
         self.station = Stations.objects.get(station_name=netsta)
@@ -121,9 +122,20 @@ def station_level(request, network='*', station='*'):
 
 def api_channel_data(request, network, station, channel):
     """
-    Grab data for a specific Channel
+    Grab data for a specific Network/Station/Channel
+    :parameter network: Network of interest
+    :type network: str
+    :parameter station: Station within Network
+    :type station: str
+    :parameter channel: Channel within Station
+    :type channel: str
+    :parameter request: Request
+    :type request: Django Request object
+    :returns JSon Response
+    :rtype JsonResponse
     """
     if request.method == 'GET':
+        # Process URL parameters
         fields_raw = request.GET.get('fields')
         start_date_raw = request.GET.get('startdate')
         start_date = datetime.strptime(start_date_raw, '%Y-%m-%d') if start_date_raw else datetime.now() - timedelta(60)
@@ -134,11 +146,14 @@ def api_channel_data(request, network, station, channel):
         ymin = request.GET.get('ymin')
         ymax = request.GET.get('ymax')
         kwdates = {'stationday_fk__stationday_date__gte': start_date, 'stationday_fk__stationday_date__lte': end_date}
+        # Get station data
         stationobj = get_object_or_404(Stations, station_name=network + '_' + station)
+        # Decide data set to plot
         if fields_raw:
             fields = fields_raw.split(',')
         else:
             fields = ['high', 'low', 'avg']
+        # Build plot data
         plot_data = {'network': network,
                      'station': station,
                      'channel': channel,
@@ -147,16 +162,18 @@ def api_channel_data(request, network, station, channel):
                      'ymin': ymin,
                      'ymax': ymax,
                      'data': []}
-        if channel.endswith('V'):
-            plot_data['units'] = 'Volts DC'
-        else:
-            plot_data['units'] = 'Whatever this is?'
-        if 'alert' in fields:
-            alert_values = Alerts.objects.filter(stationday_fk__station_fk=stationobj).values_list('stationday_fk__stationday_date', 'alert_text').order_by('-stationday_fk__stationday_date')
-            alerts = []
-            for date, alert in alert_values:
-                alerts.append({'date': str(date), 'value': alert})
-            plot_data['alerts'] = alerts
+        # Get channel data
+        channelobj = Channels.objects.filter(channel=channel).first()
+        plot_data['units'] = channelobj.units
+        plot_data['description'] = channelobj.description
+        # In the future maybe do something with alerts
+        # if 'alert' in fields:
+        #     alert_values = Alerts.objects.filter(stationday_fk__station_fk=stationobj).values_list('stationday_fk__stationday_date', 'alert_text').order_by('-stationday_fk__stationday_date')
+        #     alerts = []
+        #     for date, alert in alert_values:
+        #         alerts.append({'date': str(date), 'value': alert})
+        #     plot_data['alerts'] = alerts
+        # Process plot data values
         if 'high' in fields or 'low' in fields or 'avg' in fields:
             channel_values = ValuesAhl.objects.filter(**kwdates).filter(stationday_fk__station_fk=stationobj, channel_fk__channel=channel).values_list('stationday_fk__stationday_date', 'high_value', 'avg_value', 'low_value').order_by('-stationday_fk__stationday_date')
             high_values = []
@@ -178,7 +195,21 @@ def api_channel_data(request, network, station, channel):
 
 
 def channel_level(request, network, station, channel):
+    """
+    Display data for a specific Network/Station/Channel, pretty much just pass parameters through as template does an API hit.
+    :parameter network: Network of interest
+    :type network: str
+    :parameter station: Station within Network
+    :type station: str
+    :parameter channel: Channel within Station
+    :type channel: str
+    :parameter request: Request
+    :type request: Django Request object
+    :returns Rendered Response
+    :rtype Response
+    """
     parameters = request.GET.dict()
+    # This updates DB with current data
     # process_opaque_files(glob.glob('/msd/%s/%s/90_OF[AC].512.seed' % ('-'.join([network, station]), stationdate.strftime('%Y/%j'))))
     # process_opaque_files(glob.glob('/tr1/telemetry_days/%s/%s/90_OF[AC].512.seed' % ('-'.join([network, station]), stationdate.strftime('%Y/%Y_%j'))))
     return render(request, 'falcon/channel.html',

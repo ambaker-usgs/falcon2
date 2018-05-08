@@ -14,8 +14,6 @@ function buildGraph()
     // Legend location and size
     var legend_width = 400;
     var legend_height = 50;
-//    var legendx = svgWidth/2 - legend_width/2 - margin.right;
-//    var legendy = svgHeight - legend_height - margin.top;
     var legendx = svgWidth - legend_width - margin.left - margin.right;
     var legendy = 0;
     // Function to Parse the date / time
@@ -49,6 +47,11 @@ function buildGraph()
         document.plot_data.ymin = ymin
         document.plot_data.ymax = ymax
     }
+    if(ymin == 0 && ymax == 0)
+    {
+        ymin = -1.0;
+        ymax = 1.0;
+    }
     var yScale = d3.scaleLinear()
         .range([height, 0])
         .domain([ymin, ymax]);
@@ -62,7 +65,6 @@ function buildGraph()
         .tickPadding(10);
 
     var tdiff = Xdomain[1] - Xdomain[0];
-    console.log(Xdomain);
     if(tdiff > 182*24*60*60*1000)
         xAxis.tickFormat(d3.timeFormat("%b-%Y"));
 
@@ -129,14 +131,11 @@ function buildGraph()
                     var m = d3.mouse(e);
                     m[0] = Math.max(0, Math.min(width, m[0]));
                     m[1] = Math.max(0, Math.min(height, m[1]));
-                    console.log(origin[0]);
-                    console.log(m[0]);
                     // Translate screen coordinates into plotting coordinates using the scales
                     if (m[0] !== origin[0] && m[1] !== origin[1]) {
                         xScale.domain([origin[0], m[0]].map(xScale.invert).sort(sortByDateAscending));
                         yScale.domain([origin[1], m[1]].map(yScale.invert).sort());
                     }
-                    console.log(xScale.domain());
                     rect.remove();
                     updateZoom()
                 }, true);
@@ -233,7 +232,7 @@ function buildGraph()
         .attr("x", width/2)
         .attr("y", -25)
         .style("text-anchor", "middle")
-        .text(document.graph_title);
+        .text("Channel: " + document.plot_data.network + "-" + document.plot_data.station + "-" + document.plot_data.channel + ": " + document.plot_data.description);
 
     // This is the heart of the zoom
     function updateZoom() {

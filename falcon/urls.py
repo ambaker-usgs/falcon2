@@ -4,7 +4,7 @@ from django.views.decorators.cache import cache_page
 from falcon.views import views
 
 urlpatterns = [
-    path('', cache_page(60 * 6)(views.index), name='index'),
+    path('', cache_page(60 * 5)(views.index), name='index'),
     path('refresh', views.index, name='index'),
     path('falconer', include('falconer.urls')),
     re_path(r'^(?P<network>[\w+]{2})/$', cache_page(60 * 6)(views.network_level), name='network_level'),

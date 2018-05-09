@@ -117,7 +117,7 @@
                    ('FE',   'Fiber Error', NULL),
                    ('IHS',  'Internal Humidity Sensor', NULL),
                    ('Indoor t', 'Indoor Temperature', 'Degrees F'),
-                   ('ITS',  'Internal Temperature Sensor', NULL),
+                   ('ITS',  'Internal Temperature Sensor', 'Degrees F'),
                    ('KT',   'KS54000 Temperature', 'Degrees F'),
                    ('KHT1', 'KS54000 Heat Tape #1 Current', 'Amps'),
                    ('KHT2', 'KS54000 Heat Tape #2 Current', 'Amps'),

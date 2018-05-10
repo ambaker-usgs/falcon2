@@ -5,10 +5,10 @@
             <column autoIncrement="true" name="alert_id" type="BIGSERIAL">
                 <constraints primaryKey="true" primaryKeyName="alerts_pkey"/>
             </column>
-            <column name="alert_text" type="TEXT">
+            <column name="stationday_fk" type="BIGINT">
                 <constraints nullable="false"/>
             </column>
-            <column name="stationday_fk" type="BIGINT">
+            <column name="alert_text" type="TEXT">
                 <constraints nullable="false"/>
             </column>
         </createTable>

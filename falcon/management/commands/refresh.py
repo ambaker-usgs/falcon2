@@ -1,16 +1,19 @@
-from django.core.management.base import BaseCommand, CommandError
-from falcon.models import Stations, Stationdays, Channels, Alerts, ValuesAhl
 
 import glob
+<<<<<<< HEAD
 import httplib2
 import os
 import subprocess   
 from datetime import datetime
 from dateutil import tz
+=======
+>>>>>>> dave
 from obspy.core import UTCDateTime
 
-shallow_days_back = 10
-deep_years_back = 8
+from django.core.management.base import BaseCommand, CommandError
+
+from falcon.utils.ofadump import falconer
+
 
 class Command(BaseCommand):
     help = 'Closes the specified poll for voting'
@@ -24,6 +27,7 @@ class Command(BaseCommand):
                 falconer(refresh_depth)
             except Exception as e:
                 raise CommandError('Unable to %sly refresh Falcon files: %s' % (refresh_depth, e))
+<<<<<<< HEAD
 
 def falconer(refresh_depth):
     stationdate = UTCDateTime.now()
@@ -130,3 +134,5 @@ def process_opaque_files(opaque_files):
                 except Exception as e:
                     print('!! %s' % e)
                     print(staday, alert, alert_obj)
+=======
+>>>>>>> dave

@@ -1,19 +1,16 @@
+from django.core.management.base import BaseCommand, CommandError
+from falcon.models import Stations, Stationdays, Channels, Alerts, ValuesAhl
 
 import glob
-<<<<<<< HEAD
 import httplib2
 import os
 import subprocess   
 from datetime import datetime
 from dateutil import tz
-=======
->>>>>>> dave
 from obspy.core import UTCDateTime
 
-from django.core.management.base import BaseCommand, CommandError
-
-from falcon.utils.ofadump import falconer
-
+shallow_days_back = 10
+deep_years_back = 6
 
 class Command(BaseCommand):
     help = 'Closes the specified poll for voting'
@@ -27,7 +24,6 @@ class Command(BaseCommand):
                 falconer(refresh_depth)
             except Exception as e:
                 raise CommandError('Unable to %sly refresh Falcon files: %s' % (refresh_depth, e))
-<<<<<<< HEAD
 
 def falconer(refresh_depth):
     stationdate = UTCDateTime.now()
@@ -121,18 +117,7 @@ def process_opaque_files(opaque_files):
             alerts = subprocess.getoutput(ofadump % ('f', opaque)).split('\n')
             for alert in alerts:
                 try:
-                    # beware, very rarely there is an alert that is 2 words long
-                    alert = alert.split()
-                    # alert is station, date, time, alert_channel, alert code, 'alarm', 'event', 'On', trigger_phrase
-                    datetime = UTCDateTime('T'.join((alert[1], alert[2])))
-                    alert_channel = alert[3]
-                    if len(alert) > 9:
-                        alert_channel = ' '.join((alert_channel, alert[4]))
-                    is_triggered = alert[-1] == 'triggered'
-                    # alert_obj, _ = Alerts.objects.get_or_create(stationday_fk=staday, alert_text=alert)
-                    alert_obj, _ = Alerts.objects.get_or_create(stationday_fk=staday, alert=alert_channel, alert_ts=datetime, triggered=is_triggered)
+                    alert_obj, _ = Alerts.objects.get_or_create(stationday_fk=staday, alert_text=alert)
                 except Exception as e:
                     print('!! %s' % e)
                     print(staday, alert, alert_obj)
-=======
->>>>>>> dave

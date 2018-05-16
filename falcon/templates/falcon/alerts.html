@@ -3,7 +3,7 @@
 {% block alerts %}
 
 {% for alert in alerts %}
-    <div class="falcon2 container alert_text">{{alert.alert}}: {{ alert.alert_ts }}: {{ alert.triggered }}</div>
+    <div class="falcon2 container alert_text">{{alert}}</div>
 {% endfor %}
 
 {% endblock %}

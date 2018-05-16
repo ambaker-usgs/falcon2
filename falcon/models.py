@@ -83,9 +83,13 @@ class Alerts(models.Model):
                                       db_column='stationday_fk',
                                       help_text='Date of alert',
                                       verbose_name='Alert Date')
-    alert_text = models.TextField(blank=True, null=True,
-                                  help_text='Text of alert',
-                                  verbose_name='Alert Text')
+    alert = models.TextField(blank=True, null=True,
+                             help_text='Text of alert',
+                             verbose_name='Alert Text')
+    alert_ts = models.DateTimeField(help_text='Alert Event time stamp',
+                                    verbose_name='Alert Time Stamp')
+    triggered = models.BooleanField(help_text='Alert event triggered=True',
+                                    verbose_name='Alert Triggered')
 
     class Meta:
         app_label = 'falcon'
@@ -93,7 +97,7 @@ class Alerts(models.Model):
         db_table = 'alerts'
     
     def __str__(self):
-        return '%s %s' % (self.stationday_fk, self.alert_text)
+        return '%s %s' % (self.stationday_fk, self.alert)
 
 
 class ValuesAhl(models.Model):

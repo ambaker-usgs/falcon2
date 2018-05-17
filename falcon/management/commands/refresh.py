@@ -1,11 +1,16 @@
+from django.core.management.base import BaseCommand, CommandError
+from falcon.models import Stations, Stationdays, Channels, Alerts, ValuesAhl
 
 import glob
+import httplib2
+import os
+from datetime import datetime
+from dateutil import tz
 from obspy.core import UTCDateTime
+import subprocess
 
-from django.core.management.base import BaseCommand, CommandError
-
-from falcon.utils.ofadump import falconer
-
+shallow_days_back = 10
+deep_years_back = 6
 
 class Command(BaseCommand):
     help = 'Closes the specified poll for voting'
@@ -19,3 +24,111 @@ class Command(BaseCommand):
                 falconer(refresh_depth)
             except Exception as e:
                 raise CommandError('Unable to %sly refresh Falcon files: %s' % (refresh_depth, e))
+
+def falconer(refresh_depth):
+    stationdate = UTCDateTime.now()
+    if refresh_depth == 'cache':
+        base_url = 'http://igskgacgvmdevwb.cr.usgs.gov/falcon2/'
+        httplib2.Http().request(base_url)
+        httplib2.Http().request(base_url + 'IU/')
+        backdate = stationdate + 1
+    if refresh_depth == 'shallow':
+        backdate = stationdate - (86400 * shallow_days_back)
+    if refresh_depth == 'deep':
+        backdate = UTCDateTime('%s,%s' % (stationdate.year - deep_years_back, stationdate.strftime('%j')))
+    while stationdate >= backdate:
+        process_opaque_files(glob.glob('/msd/*_*/%s/90_OF[AC].512.seed' % stationdate.strftime('%Y/%j')))
+        process_opaque_files(glob.glob('/tr1/telemetry_days/*_*/%s/90_OF[AC].512.seed' % stationdate.strftime('%Y/%Y_%j')))
+        stationdate -= 86400
+
+def process_opaque_files(opaque_files):
+    'Pass the files to ofadump and extract the necessary parameters for database insertion'
+    # ofadump = '/data/www/falcon/asl-station-processor/falcon/ofadump -%s %s'
+    ofadump = '/home/dwitte/dev/ofadump/ofadump -%s %s'
+
+    for opaque in opaque_files:
+        tmp = opaque.split('/')
+        opaque_fp = tmp[-5]
+        net_sta = tmp[-4]
+        year = tmp[-3]
+        jday = tmp[-2].split('_')[-1]
+        opaque_filename = tmp[-1]
+        # get or create Station
+        sta, _ = Stations.objects.get_or_create(station_name=net_sta)
+        
+        # update or create Stationday, lastly update for OFA/OFC file mod times
+        # staday_id, _ = Stationdays.objects.get_or_create(station_fk=sta_id,
+        #                                                  stationday_date=UTCDateTime('%s,%s' % (year, jday)).date)
+        opaque_fmt = datetime.fromtimestamp(os.path.getmtime(opaque)).replace(tzinfo=tz.gettz('UTC'))
+        
+        staday, _ = Stationdays.objects.get_or_create(station_fk=sta,
+                                                             stationday_date=UTCDateTime('%s,%s' % (year, jday)).datetime)
+
+        # OFC VALUES
+        if 'OFC' in opaque_filename:
+            
+            staday.ofc_mod_ts = opaque_fmt
+            staday.save()
+            # Stationdays.objects.update(stationday_id=staday.stationday_id,
+            #                                            ofc_mod_ts=opaque_fmt)
+            
+            # also add the channels to the channels table
+            chans = subprocess.getoutput(ofadump % ('c', opaque)).split('\n')
+            for chan in chans:
+                channel, _ = Channels.objects.get_or_create(channel=chan)
+            
+            # also add the values to the values table, linking with the appropriate channel table entry
+            vals = subprocess.getoutput(ofadump % ('f', opaque))
+            values_dict = {}
+            # first, gather all the values
+            for chans in vals.split('description:')[1:]:
+                lines = chans.split('\n')
+                chan = lines[0].strip()
+                values_dict[chan] = [[],[],[]]
+                for line in lines:
+                    line = line.split()
+                    if '|' in line and 'Timestamp' not in line:
+                        # print(channel, line)
+                        values_dict[chan][0].append(int(line[4]))  #average
+                        values_dict[chan][1].append(int(line[6]))  #high
+                        values_dict[chan][2].append(int(line[8]))  #low
+            # then, get the average, high, and low values
+            for chan in values_dict:
+                val_avg = sum(values_dict[chan][0])/len(values_dict[chan][0])
+                val_high = max(values_dict[chan][0])
+                val_low = min(values_dict[chan][0])
+                
+                # find appropriate channel and add to values table
+                channel, _ = Channels.objects.get_or_create(channel=chan)
+                
+                value, _ = ValuesAhl.objects.get_or_create(stationday_fk=staday,
+                                                                channel_fk=channel)
+                value.stationday_fk = staday
+                value.channel_fk = channel
+                value.avg_value = val_avg
+                value.high_value = val_high
+                value.low_value = val_low
+                value.save()
+        # OFA ALERTS
+        elif 'OFA' in opaque_filename:
+            staday.ofa_mod_ts = opaque_fmt
+            staday.save()
+
+            # also add the alert to the alerts table
+            alerts = subprocess.getoutput(ofadump % ('f', opaque)).split('\n')
+            for alert in alerts:
+                print(staday, alert)
+                try:
+                    # beware, very rarely there is an alert that is 2 words long
+                    alert = alert.split()
+                    # alert is station, date, time, alert_channel, alert code, 'alarm', 'event', 'On', trigger_phrase
+                    dt = UTCDateTime('T'.join((alert[1], alert[2])))
+                    alert_channel = alert[3]
+                    if len(alert) > 9:
+                        alert_channel = ' '.join((alert_channel, alert[4]))
+                    is_triggered = alert[-1] == 'triggered'
+                    # alert_obj, _ = Alerts.objects.get_or_create(stationday_fk=staday, alert_text=alert)
+                    alert_obj, _ = Alerts.objects.get_or_create(stationday_fk=staday, alert=alert_channel, alert_ts=str(dt), triggered=is_triggered)
+                except Exception as e:
+                    print('!! %s' % e)
+                    print(staday, alert)

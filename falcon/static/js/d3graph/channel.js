@@ -234,6 +234,17 @@ function buildGraph()
         .style("text-anchor", "middle")
         .text("Channel: " + document.plot_data.network + "-" + document.plot_data.station + "-" + document.plot_data.channel + ": " + document.plot_data.description);
 
+    // No data message
+    if(document.plot_data.data[0].values.length == 0)
+    {
+        svg.append("text")
+            .attr("class", "graphtitle")
+            .attr("x", width/2)
+            .attr("y", height/2)
+            .style("text-anchor", "middle")
+            .text("No Data");
+    }
+
     // This is the heart of the zoom
     function updateZoom() {
 

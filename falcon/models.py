@@ -33,7 +33,9 @@ class Stationdays(models.Model):
 
 class Channels(models.Model):
     channel_id = models.BigAutoField(primary_key=True)
-    channel = models.CharField(max_length=10, unique=True)
+    channel = models.TextField(unique=True)
+    units = models.TextField(blank=True, null=True)
+    description = models.TextField()
 
     class Meta:
         app_label = 'falcon'
@@ -46,7 +48,9 @@ class Channels(models.Model):
 class Alerts(models.Model):
     alert_id = models.BigAutoField(primary_key=True)
     stationday_fk = models.ForeignKey('Stationdays', models.DO_NOTHING, db_column='stationday_fk')
-    alert_text = models.TextField(blank=True, null=True)
+    alert = models.TextField()
+    alert_ts = models.DateTimeField()
+    triggered = models.BooleanField()
 
     class Meta:
         app_label = 'falcon'
@@ -54,7 +58,8 @@ class Alerts(models.Model):
         db_table = 'alerts'
     
     def __str__(self):
-        return '%s %s' % (self.stationday_fk, self.alert_text)
+        alert_dt = self.alert_ts.strftime('%Y/%m/%d (%j) %H:%M:%S')
+        return '%s %s %s: Alarm event On %s' % (self.stationday_fk.station_fk.station_name, alert_dt, self.alert, 'triggered' if self.triggered else 'restored')
 
 class ValuesAhl(models.Model):
     value_id = models.BigAutoField(primary_key=True)

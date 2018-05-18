@@ -1,6 +1,11 @@
 #!/usr/bin/env bash
+<<<<<<< HEAD
 LQ_VERSION=3.6.1
 PG_VERSION=42.2.2
+=======
+LQ_VERSION=3.5.3
+PG_VERSION=42.1.1
+>>>>>>> dave
 VENV=venv
 echo "Setting up virtualenv"
 virtualenv -p python3 $VENV

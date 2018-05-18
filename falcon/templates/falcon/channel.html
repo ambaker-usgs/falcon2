@@ -33,7 +33,7 @@
             data: {{ parameters|safe }},
             success: function ( json ) {
                 document.plot_data = json;
-                console.log(document.plot_data);
+                // console.log(document.plot_data);
                 buildGraph();
             },
             error: function () {
@@ -41,7 +41,6 @@
             }
         } );
         document.channel_url = "{% url 'channel_level' network=network  station=station channel=channel %}";
-        document.graph_title = "Channel: {{ network }}-{{ station }}-{{ channel }}"
     });
 </script>
 

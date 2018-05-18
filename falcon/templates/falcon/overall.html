@@ -33,7 +33,7 @@
         {% else %}
         <div class="falcon2 warning black">
         {% endif %}
-        |{{alert.alert}}|</div>
+        {{alert.alert}}</div>
     {% endfor %}
     
     {% for channel, warning in station.channels_dict_sorted %}

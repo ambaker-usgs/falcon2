@@ -117,7 +117,11 @@ def process_opaque_files(opaque_files):
             alerts = subprocess.getoutput(ofadump % ('f', opaque)).split('\n')
             for alert in alerts:
                 try:
-                    alert_obj, _ = Alerts.objects.get_or_create(stationday_fk=staday, alert_text=alert)
+                    alert = alert.split()
+                    alert_dt = datetime.strptime(' '.join((alert[1],alert[2])),'%Y/%m/%d %H:%M:%S')
+                    alert_channel = alert[3] if alert[3] == alert[-6] else ' '.join((alert[3],alert[-6]))
+                    is_triggered = alert[-1] == 'triggered'
+                    alert_obj, _ = Alerts.objects.get_or_create(stationday_fk=staday, alert=alert_channel, alert_ts=alert_dt, triggered=is_triggered)
                 except Exception as e:
                     print('!! %s' % e)
                     print(staday, alert, alert_obj)

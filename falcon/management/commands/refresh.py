@@ -8,6 +8,7 @@ import subprocess
 from datetime import datetime
 from dateutil import tz
 from obspy.core import UTCDateTime
+import subprocess
 
 shallow_days_back = 10
 deep_years_back = 6

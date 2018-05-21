@@ -38,7 +38,12 @@ rect.legend {
   fill: #f2f2f2;
 }
 
-graphtitle {
+.graphtitle {
+  font: 20px Arial;
+  font-weight: bold;
+}
+
+.nodata {
   font: 48px Arial;
   font-weight: bold;
 }

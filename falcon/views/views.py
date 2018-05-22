@@ -74,18 +74,18 @@ class StationOverview(object):
             self.station_warning_level = max(self.station_warning_level, 3 if alert.triggered else 1)
 
 def process_stations(net_sta):
-    before_t = datetime.now()
+    #before_t = datetime.now()
     # alert = Alerts.objects.filter(stationday_fk__station_fk__station_name=net_sta).filter(stationday_fk__stationday_date__gte=before_t - timedelta(60)).order_by('-alert_text')[:100]
     alerts = Alerts.objects.filter(stationday_fk__station_fk=net_sta,stationday_fk__stationday_date__gte=datetime.today() - timedelta(60)).order_by('alert','-alert_ts').distinct('alert')
-    during = datetime.today()
+    #during = datetime.today()
     stn = StationOverview(net_sta, alerts)
-    after = datetime.today()
-    if (during - before_t).seconds >= 1.0 or (after - during).seconds >= 1.0:
-        print('\t%s' % net_sta.station_name)
-        print('\tAlerts rcvd:  %d.%d' % ((during - before_t).seconds, (during - before_t).microseconds))
-        print('\tStation objd: %d.%d' % ((after - during).seconds, (after - during).microseconds))
-        print('\tAlerts ct:    %d' % alerts.count())
-        print()
+    #after = datetime.today()
+    #if (during - before_t).seconds >= 1.0 or (after - during).seconds >= 1.0:
+    #    print('\t%s' % net_sta.station_name)
+    #    print('\tAlerts rcvd:  %d.%d' % ((during - before_t).seconds, (during - before_t).microseconds))
+    #    print('\tStation objd: %d.%d' % ((after - during).seconds, (after - during).microseconds))
+    #    print('\tAlerts ct:    %d' % alerts.count())
+    #    print()
     return stn
 
 # Create your views here.

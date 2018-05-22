@@ -1,7 +1,7 @@
 from django.http import HttpResponse, JsonResponse
 from django.shortcuts import render, get_object_or_404
 from django.template import loader
-from falcon.models import Stations, Stationdays, Channels, Alerts, ValuesAhl
+from falcon.models import Stations, Stationdays, Channels, Alerts, ValuesAhl, AlertsDisplay, ChannelsDisplay
 from falcon.forms.userscale import UserScalingForm
 
 import concurrent.futures
@@ -310,3 +310,21 @@ def channel_level(request, network, station, channel):
 #             for chan in values_dict:
 #                 val_avg = sum(values_dict[chan][0])/len(values_dict[chan][0])
 #
+
+def test(request):
+    'Test overall view'
+    overall_time = datetime.today()
+    net_stas = Stations.objects.all().order_by('station_name')
+    now = datetime.today()
+    for net_sta in net_stas:
+        alerts_disp = AlertsDisplay.objects.filter(station_fk=net_sta)
+        channels_disp = ChannelsDisplay.objects.filter(station_fk=net_sta)
+        net_sta.alerts = alerts_disp
+        net_sta.channels = channels_disp
+
+    template = loader.get_template('falcon/overall.html')
+    context = {
+        'message': (datetime.today() - now).seconds,
+        'stations': net_stas,
+    }
+    return HttpResponse(template.render(context, request))

@@ -1,11 +1,11 @@
 from django.core.management.base import BaseCommand, CommandError
-from falcon.models import Stations, Stationdays, Channels, Alerts, ValuesAhl
+from falcon.models import Stations, Stationdays, Channels, Alerts, ValuesAhl, AlertsDisplay, ChannelsDisplay
 
 import glob
 import httplib2
 import os
 import subprocess   
-from datetime import datetime
+from datetime import date, datetime
 from dateutil import tz
 from obspy.core import UTCDateTime
 import subprocess
@@ -28,6 +28,9 @@ class Command(BaseCommand):
 
 def falconer(refresh_depth):
     stationdate = UTCDateTime.now()
+    if refresh_depth == 'builddisplay':
+        build_display()
+        backdate = stationdate + 1
     if refresh_depth == 'cache':
         base_url = 'http://igskgacgvmdevwb.cr.usgs.gov/falcon2/'
         httplib2.Http().request(base_url)
@@ -116,13 +119,91 @@ def process_opaque_files(opaque_files):
 
             # also add the alert to the alerts table
             alerts = subprocess.getoutput(ofadump % ('f', opaque)).split('\n')
+            if alerts != ['']:
+                for alert in alerts:
+                    try:
+                        alert = alert.split()
+                        alert_dt = datetime.strptime(' '.join((alert[1],alert[2])),'%Y/%m/%d %H:%M:%S')
+                        alert_channel = alert[3] if alert[3] == alert[-6] else ' '.join((alert[3],alert[-6]))
+                        is_triggered = alert[-1] == 'triggered'
+                        alert_obj, _ = Alerts.objects.get_or_create(stationday_fk=staday, alert=alert_channel, alert_ts=alert_dt, triggered=is_triggered)
+                    except Exception as e:
+                        print('!! %s' % e)
+                        print(staday, alert, alert_obj)
+
+def build_display():
+    'Queries the most recent alerts and channels to build the view'
+    #ALERTS; first truncate the table and then repopulate
+    try:
+        #this is dirty, but otherwise the command won't execute
+        AlertsDisplay.objects.raw('TRUNCATE alerts_display RESTART IDENTITY')[0]
+    except:
+        pass
+    finally:
+        for net_sta in Stations.objects.all():
+            alerts = Alerts.objects.filter(stationday_fk__station_fk=net_sta).order_by('alert','-stationday_fk__stationday_date').distinct('alert')
+            # add OFC alert, checking if filemodtime is recent
+            latest_ofc_filemodtime = Stationdays.objects.filter(station_fk=net_sta).order_by('-stationday_date').first().ofc_mod_ts
+            if latest_ofc_filemodtime < datetime.combine(date.today(), datetime.min.time()):
+                alert_warning_level = 3
+            else:
+                alert_warning_level = 1
+            alert = 'OFC'
+            alert_value = latest_ofc_filemodtime.strftime('%Y-%m-%d (%j) %H:%M:%S')
+            alerts_disp_obj, _ = AlertsDisplay.objects.get_or_create(station_fk=net_sta,
+                                                                     alert=alert,
+                                                                     alert_warning_level=alert_warning_level,
+                                                                     alert_value=alert_value
+                                                                     )
             for alert in alerts:
-                try:
-                    alert = alert.split()
-                    alert_dt = datetime.strptime(' '.join((alert[1],alert[2])),'%Y/%m/%d %H:%M:%S')
-                    alert_channel = alert[3] if alert[3] == alert[-6] else ' '.join((alert[3],alert[-6]))
-                    is_triggered = alert[-1] == 'triggered'
-                    alert_obj, _ = Alerts.objects.get_or_create(stationday_fk=staday, alert=alert_channel, alert_ts=alert_dt, triggered=is_triggered)
-                except Exception as e:
-                    print('!! %s' % e)
-                    print(staday, alert, alert_obj)
+                alerts_disp_obj, _ = AlertsDisplay.objects.get_or_create(station_fk=net_sta,
+                                                                         alert=alert.alert,
+                                                                         alert_warning_level=3 if alert.triggered else 1,
+                                                                         alert_value=str(alert.triggered)
+                                                                         )
+                if _:
+                    print('Full alert:', alert.alert)
+                    print('Warn Level:', 3 if alert.triggered else 1)
+                    print('Alert Val: ', alert.triggered)
+                    print('Obj number:', alerts_disp_obj)
+                    print()
+    #CHANNELS; first truncate the table and then repopulate
+    try:
+        #this is dirty, but otherwise the command won't execute
+        ChannelsDisplay.objects.raw('TRUNCATE channels_display RESTART IDENTITY')[0]
+    except:
+        pass
+    finally:
+        for net_sta in Stations.objects.all():
+            channels = ValuesAhl.objects.filter(stationday_fk__station_fk=net_sta).order_by('channel_fk__channel','-stationday_fk__stationday_date').distinct('channel_fk__channel')
+            # alerts = Alerts.objects.filter(stationday_fk__station_fk=net_sta).order_by('alert','-stationday_fk__stationday_date').distinct('alert')
+            for channel in channels:
+                # set channel warning levels
+                # Battery Voltages (B1V...B12V) usually stay around 13v
+                if channel.channel_fk.channel[0] == 'B' and channel.channel_fk.channel[-1] == 'V' and channel.channel_fk.channel[1:-1].isdigit():
+                    if 11 <= channel.low_value <= 15 and 11 <= channel.high_value <= 15:
+                        chan_warn_level = 1
+                    elif 10 <= channel.low_value <= 16 and 10 <= channel.high_value <= 16:
+                        chan_warn_level = 2
+                    else:
+                        chan_warn_level = 3
+                # Battery Voltages (B1V...B12V) usually stay around 13v
+                elif channel.channel_fk.channel[0:3] == 'DCV':
+                    if 21 <= channel.low_value <= 30 and 21 <= channel.high_value <= 30:
+                        chan_warn_level = 1
+                    elif 19 <= channel.low_value <= 35 and 19 <= channel.high_value <= 35:
+                        chan_warn_level = 2
+                    else:
+                        chan_warn_level = 3
+                else:
+                    chan_warn_level = 0
+                channels_disp_obj, _ = ChannelsDisplay.objects.get_or_create(station_fk=net_sta,
+                                                                         channel=channel.channel_fk.channel,
+                                                                         channel_warning_level=chan_warn_level,
+                                                                         channel_value='%.2f' % channel.avg_value
+                                                                         )
+                if _:
+                    print('Full chan:', channel.channel_fk.channel)
+                    print('Warn Levl:', chan_warn_level)
+                    print('Chann Val: ', '%.2f' % channel.avg_value)
+                    print()

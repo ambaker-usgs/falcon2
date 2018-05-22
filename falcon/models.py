@@ -59,7 +59,7 @@ class Alerts(models.Model):
     
     def __str__(self):
         alert_dt = self.alert_ts.strftime('%Y/%m/%d (%j) %H:%M:%S')
-        return '%s %s %s: Alarm event On %s' % (self.stationday_fk.station_fk.station_name, alert_dt, self.alert, 'triggered' if self.triggered else 'restored')
+        return '%-8s %s %s: Alarm event On %s' % (self.stationday_fk.station_fk.station_name, alert_dt, self.alert, 'triggered' if self.triggered else 'restored')
 
 class ValuesAhl(models.Model):
     value_id = models.BigAutoField(primary_key=True)
@@ -79,3 +79,33 @@ class ValuesAhl(models.Model):
         if self.avg_value and self.high_value and self.low_value:
             return '%s %s %.2f %d %d' % (self.stationday_fk, self.channel_fk, self.avg_value, self.high_value, self.low_value)
         return '%s %s -- -- --' % (self.stationday_fk, self.channel_fk)
+
+class AlertsDisplay(models.Model):
+    alerts_display_id = models.BigAutoField(primary_key=True)
+    station_fk = models.ForeignKey('Stations', models.DO_NOTHING, db_column='station_fk')
+    alert = models.TextField()
+    alert_warning_level = models.BigIntegerField()
+    alert_value = models.TextField()
+
+    class Meta:
+        app_label = 'falcon'
+        managed = False
+        db_table = 'alerts_display'
+    
+    def __str__(self):
+        return '%s [%d] %s' % (self.alert_value, self.alert_warning_level, self.alert, )
+
+class ChannelsDisplay(models.Model):
+    channels_display_id = models.BigAutoField(primary_key=True)
+    station_fk = models.ForeignKey('Stations', models.DO_NOTHING, db_column='station_fk')
+    channel = models.TextField()
+    channel_warning_level = models.BigIntegerField()
+    channel_value = models.TextField()
+
+    class Meta:
+        app_label = 'falcon'
+        managed = False
+        db_table = 'channels_display'
+    
+    def __str__(self):
+        return '%s [%d] %s' % (self.channel_value, self.channel_warning_level, self.channel, )

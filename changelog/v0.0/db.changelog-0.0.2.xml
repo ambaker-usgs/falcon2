@@ -2,8 +2,8 @@
 <databaseChangeLog xmlns="http://www.liquibase.org/xml/ns/dbchangelog" xmlns:ext="http://www.liquibase.org/xml/ns/dbchangelog-ext" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog-ext http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-ext.xsd http://www.liquibase.org/xml/ns/dbchangelog http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-3.5.xsd">
     <changeSet author="ambaker" id="0.0.2-1">
         <createTable tableName="alerts_display">
-            <column autoIncrement="true" name="alert_id" type="BIGSERIAL">
-                <constraints primaryKey="true" primaryKeyName="alerts_pkey"/>
+            <column autoIncrement="true" name="alerts_display_id" type="BIGSERIAL">
+                <constraints primaryKey="true" primaryKeyName="alerts_display_pkey"/>
             </column>
             <column name="station_fk" type="BIGINT">
                 <constraints nullable="false"/>
@@ -21,8 +21,8 @@
     </changeSet>
     <changeSet author="ambaker" id="0.0.2-2">
         <createTable tableName="channels_display">
-            <column autoIncrement="true" name="channel_id" type="BIGSERIAL">
-                <constraints primaryKey="true" primaryKeyName="channels_pkey"/>
+            <column autoIncrement="true" name="channels_display_id" type="BIGSERIAL">
+                <constraints primaryKey="true" primaryKeyName="channels_display_pkey"/>
             </column>
             <column name="station_fk" type="BIGINT">
                 <constraints nullable="false"/>
@@ -50,8 +50,8 @@
                 referencedTableName="stations"/>
     </changeSet>
     <changeSet author="ambaker" id="0.0.2-4">
-        <addForeignKeyConstraint baseColumnNames="person_id"
-                baseTableName="address"
+        <addForeignKeyConstraint baseColumnNames="station_fk"
+                baseTableName="channels_display"
                 constraintName="channels_display_station_fk_fkey"
                 deferrable="true"
                 initiallyDeferred="true"

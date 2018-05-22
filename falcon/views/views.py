@@ -150,9 +150,14 @@ def network_level(request, network='*'):
     #     stations.append(StationOverview(net_sta, alerts.filter(stationday_fk__station_fk=net_sta)))
     
     #multiprocessing
-    mp_pool = pool.Pool(threadcount)
-    stations = mp_pool.map(process_stations, net_stas)
-    
+    #mp_pool = pool.Pool(threadcount)
+    #stations = mp_pool.map(process_stations, net_stas)
+   
+    #multiprocessing
+    with pool.Pool(threadcount) as mp_pool:
+        # mp_pool = pool.Pool(threadcount)
+        stations = mp_pool.map(process_stations, net_stas)
+ 
     template = loader.get_template('falcon/overall.html')
     context = {
         'message': (datetime.today() - now).seconds,

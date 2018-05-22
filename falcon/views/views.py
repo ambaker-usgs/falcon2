@@ -96,10 +96,11 @@ def index(request):
     now = datetime.today()
     stations = []
     # alerts = Alerts.objects.select_related('stationday_fk','stationday_fk__station_fk').filter(stationday_fk__stationday_date__gte=now - timedelta(60))
-    
+
     #multiprocessing
-    mp_pool = pool.Pool(threadcount)
-    stations = mp_pool.map(process_stations, net_stas)
+    with pool.Pool(threadcount) as mp_pool:
+        # mp_pool = pool.Pool(threadcount)
+        stations = mp_pool.map(process_stations, net_stas)
     
     # #concurrent
     # with concurrent.futures.ThreadPoolExecutor(max_workers=threadcount) as executor:

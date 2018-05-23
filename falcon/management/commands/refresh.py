@@ -5,9 +5,9 @@ import glob
 import httplib2
 import os
 import subprocess   
-from datetime import date, datetime
+from datetime import date, datetime, timedelta
 from dateutil import tz
-from obspy.core import UTCDateTime
+# from obspy.core import UTCDateTime
 import subprocess
 
 shallow_days_back = 10
@@ -27,27 +27,25 @@ class Command(BaseCommand):
                 raise CommandError('Unable to refresh Falcon files on a %s level: %s' % (refresh_depth, e))
 
 def falconer(refresh_depth):
-    stationdate = UTCDateTime.now()
-    if refresh_depth == 'setupdisplay':
-        build_display()
-        backdate = stationdate + 1
+    # stationdate = UTCDateTime.now()
+    stationdate = datetime.today()
+    backdate = stationdate
     # if refresh_depth == 'cache':
     #     base_url = 'http://igskgacgvmdevwb.cr.usgs.gov/falcon2/'
     #     httplib2.Http().request(base_url)
     #     httplib2.Http().request(base_url + 'IU/')
     #     backdate = stationdate + 1
     if refresh_depth == 'shallow':
-        backdate = stationdate - (86400 * shallow_days_back)
+        backdate = stationdate - (timedelta(1) * shallow_days_back)
     if refresh_depth == 'deep':
         backdate = datetime(stationdate.year - deep_years_back, stationdate.month, stationdate.day)
-        # backdate = UTCDateTime('%s,%s' % (stationdate.year - deep_years_back, stationdate.strftime('%j')))
-    st = datetime.today()
     while stationdate >= backdate:
         process_opaque_files(glob.glob('/msd/*_*/%s/90_OF[AC].512.seed' % stationdate.strftime('%Y/%j')))
         process_opaque_files(glob.glob('/tr1/telemetry_days/*_*/%s/90_OF[AC].512.seed' % stationdate.strftime('%Y/%Y_%j')))
-        stationdate -= 86400
-    et = datetime.today()
-    print(str(et - st))
+        stationdate -= timedelta(1)
+    if refresh_depth == 'builddisplay':
+        pass
+    build_display()
 
 def process_opaque_files(opaque_files):
     'Pass the files to ofadump and extract the necessary parameters for database insertion'
@@ -64,8 +62,6 @@ def process_opaque_files(opaque_files):
         sta, _ = Stations.objects.get_or_create(station_name=net_sta)
         
         # update or create Stationday, lastly update for OFA/OFC file mod times
-        # staday_id, _ = Stationdays.objects.get_or_create(station_fk=sta_id,
-        #                                                  stationday_date=UTCDateTime('%s,%s' % (year, jday)).date)
         opaque_fmt = datetime.fromtimestamp(os.path.getmtime(opaque)).replace(tzinfo=tz.gettz('UTC'))
         
         staday, _ = Stationdays.objects.get_or_create(station_fk=sta,
@@ -132,8 +128,7 @@ def process_opaque_files(opaque_files):
                         is_triggered = alert[-1] == 'triggered'
                         alert_obj, _ = Alerts.objects.get_or_create(stationday_fk=staday, alert=alert_channel, alert_ts=alert_dt, triggered=is_triggered)
                     except Exception as e:
-                        print('!! %s' % e)
-                        print(staday, alert, alert_obj)
+                        print('!! %s' % e, staday, alert)
 
 def build_display():
     'Queries the most recent alerts and channels to build the view'
@@ -145,7 +140,7 @@ def build_display():
         pass
     finally:
         for net_sta in Stations.objects.all():
-            alerts = Alerts.objects.filter(stationday_fk__station_fk=net_sta).order_by('alert','-stationday_fk__stationday_date').distinct('alert')
+            alerts = Alerts.objects.filter(stationday_fk__station_fk=net_sta).order_by('alert','-alert_ts').distinct('alert')
             # add OFC alert, checking if filemodtime is recent
             latest_ofc_filemodtime = Stationdays.objects.filter(station_fk=net_sta).order_by('-stationday_date').first().ofc_mod_ts
             if latest_ofc_filemodtime < datetime.combine(date.today(), datetime.min.time()):

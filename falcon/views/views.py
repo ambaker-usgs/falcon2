@@ -14,6 +14,8 @@ from multiprocessing import pool
 
 def process_stations(station_objects=Stations.objects.all().order_by('station_name') ):
     'Processes the given stations objects to gather the stations information'
+    if station_objects.count() == 0:
+        raise Http404
     for net_sta in station_objects:
         net_sta.net_code, net_sta.sta_code = net_sta.station_name.split('_')
         alerts_disp = AlertsDisplay.objects.filter(station_fk=net_sta)
@@ -46,8 +48,6 @@ def network_level(request, network='*'):
     'Network view'
     now = datetime.today()
     net_stas = Stations.objects.filter(station_name__istartswith=network).order_by('station_name')
-    if net_stas.count() == 0:
-        raise Http404
     net_stas = process_stations(net_stas)
     template = loader.get_template('falcon/overall.html')
     context = {
@@ -59,12 +59,12 @@ def network_level(request, network='*'):
 def station_level(request, network='*', station='*'):
     'Station view'
     now = datetime.today()
-    net_stas = get_object_or_404(Stations, station_name__istartswith=network,station_name__iendswith=station)
+    net_stas = Stations.objects.filter(station_name__istartswith=network,station_name__iendswith=station)
     net_stas = process_stations(net_stas)
     # get the most recent 60 days worth of alerts
     most_recent_stnday = Stationdays.objects.filter(station_fk=net_stas[0]).order_by('-stationday_date').first().stationday_date
     alerts = Alerts.objects.filter(stationday_fk__station_fk=net_stas[0],
-                                   stationday_fk__stationday_date__gte=most_recent_stnday - timedelta(60))[:100]
+                                   stationday_fk__stationday_date__gte=most_recent_stnday - timedelta(60)).order_by('-alert_ts')[:100]
     template = loader.get_template('falcon/alerts.html')
     context = {
         'message': (datetime.today() - now).seconds,

@@ -93,7 +93,7 @@ class AlertsDisplay(models.Model):
         db_table = 'alerts_display'
     
     def __str__(self):
-        return '%s [%d] %s' % (self.alert_value, self.alert_warning_level, self.alert, )
+        return '%-8s %s [%d] %s' % (self.station_fk.station_name, self.alert_value, self.alert_warning_level, self.alert)
 
 class ChannelsDisplay(models.Model):
     channels_display_id = models.BigAutoField(primary_key=True)
@@ -108,4 +108,4 @@ class ChannelsDisplay(models.Model):
         db_table = 'channels_display'
     
     def __str__(self):
-        return '%s [%d] %s' % (self.channel_value, self.channel_warning_level, self.channel, )
+        return '%-8s %s [%d] %s' % (self.station_fk.station_name, self.channel_value, self.channel_warning_level, self.channel)

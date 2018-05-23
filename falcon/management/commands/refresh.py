@@ -128,8 +128,10 @@ def process_opaque_files(opaque_files):
                         alert_channel = alert[3] if alert[3] == alert[-6] else ' '.join((alert[3],alert[-6]))
                         is_triggered = alert[-1] == 'triggered'
                         alert_obj, _ = Alerts.objects.get_or_create(stationday_fk=staday, alert=alert_channel, alert_ts=alert_dt, triggered=is_triggered)
-                    except MultipleObjectsReturned as e:
-                        alert_obj = Alerts.objects.filter(stationday_fk=staday, alert=alert_channel, alert_ts=alert_dt, triggered=is_triggered).first()
+                    except MultipleObjectsReturned:
+                        # there are a few times where there are multiple rows with the same data
+                        # these are not duplicates; the important part is that they're alread inserted
+                        pass
                     except Exception as e:
                         print('!! %s' % e, staday, alert)
 

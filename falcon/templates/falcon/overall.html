@@ -25,31 +25,34 @@
     <div class="falcon2 station black">
     {% endif %}
     <a href="/falcon2/{{station.net_code}}/{{station.sta_code}}">
-    {{station.station.station_name}}</a></div>
+    {{station.station_name}}</a></div>
 
     {% for alert in station.alerts %}
-        {% if alert.triggered %}
+        {% if alert.alert_warning_level == 3 %}
         <div class="falcon2 warning red">
+        {% elif alert.alert_warning_level == 1 %}
+        <div class="falcon2 warning green">
         {% else %}
         <div class="falcon2 warning black">
         {% endif %}
-        {{alert.alert}}</div>
+        <span title="{{alert.alert_value}}">
+        {{alert.alert}}</span></div>
     {% endfor %}
     
-    {% for channel, warning in station.channels_dict_sorted %}
-    {% if warning == 0 %}
+    {% for channel in station.channels %}
+    {% if channel.channel_warning_level == 0 %}
     <div class="falcon2 warning channel black">
-    {% elif warning == 1 %}
+    {% elif channel.channel_warning_level == 1 %}
     <div class="falcon2 warning channel green">
-    {% elif warning == 2 %}
+    {% elif channel.channel_warning_level == 2 %}
     <div class="falcon2 warning channel yellow">
-    {% elif warning == 3 %}
+    {% elif channel.channel_warning_level == 3 %}
     <div class="falcon2 warning channel red">
     {% else %}
     <div class="falcon2 warning channel black">
     {% endif %}
-    <a href="/falcon2/{{station.net_code}}/{{station.sta_code}}/{{channel}}" title="{{warning}}">
-    {{channel}}</a></div>
+    <a href="/falcon2/{{station.net_code}}/{{station.sta_code}}/{{channel.channel}}" title="{{channel.channel_value}}">
+    {{channel.channel}}</a></div>
     {% endfor %}
 
     </div>

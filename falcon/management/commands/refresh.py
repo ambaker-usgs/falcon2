@@ -24,26 +24,30 @@ class Command(BaseCommand):
             try:
                 falconer(refresh_depth)
             except Exception as e:
-                raise CommandError('Unable to %sly refresh Falcon files: %s' % (refresh_depth, e))
+                raise CommandError('Unable to refresh Falcon files on a %s level: %s' % (refresh_depth, e))
 
 def falconer(refresh_depth):
     stationdate = UTCDateTime.now()
-    if refresh_depth == 'builddisplay':
+    if refresh_depth == 'setupdisplay':
         build_display()
         backdate = stationdate + 1
-    if refresh_depth == 'cache':
-        base_url = 'http://igskgacgvmdevwb.cr.usgs.gov/falcon2/'
-        httplib2.Http().request(base_url)
-        httplib2.Http().request(base_url + 'IU/')
-        backdate = stationdate + 1
+    # if refresh_depth == 'cache':
+    #     base_url = 'http://igskgacgvmdevwb.cr.usgs.gov/falcon2/'
+    #     httplib2.Http().request(base_url)
+    #     httplib2.Http().request(base_url + 'IU/')
+    #     backdate = stationdate + 1
     if refresh_depth == 'shallow':
         backdate = stationdate - (86400 * shallow_days_back)
     if refresh_depth == 'deep':
-        backdate = UTCDateTime('%s,%s' % (stationdate.year - deep_years_back, stationdate.strftime('%j')))
+        backdate = datetime(stationdate.year - deep_years_back, stationdate.month, stationdate.day)
+        # backdate = UTCDateTime('%s,%s' % (stationdate.year - deep_years_back, stationdate.strftime('%j')))
+    st = datetime.today()
     while stationdate >= backdate:
         process_opaque_files(glob.glob('/msd/*_*/%s/90_OF[AC].512.seed' % stationdate.strftime('%Y/%j')))
         process_opaque_files(glob.glob('/tr1/telemetry_days/*_*/%s/90_OF[AC].512.seed' % stationdate.strftime('%Y/%Y_%j')))
         stationdate -= 86400
+    et = datetime.today()
+    print(str(et - st))
 
 def process_opaque_files(opaque_files):
     'Pass the files to ofadump and extract the necessary parameters for database insertion'
@@ -65,10 +69,10 @@ def process_opaque_files(opaque_files):
         opaque_fmt = datetime.fromtimestamp(os.path.getmtime(opaque)).replace(tzinfo=tz.gettz('UTC'))
         
         staday, _ = Stationdays.objects.get_or_create(station_fk=sta,
-                                                             stationday_date=UTCDateTime('%s,%s' % (year, jday)).datetime)
+                                                      stationday_date=datetime.strptime('%s,%s' % (year, jday), '%Y,%j'))
 
         # OFC VALUES
-        if 'OFC' in opaque_filename:
+        if 'OFC' in opaque_filename and staday.ofc_mod_ts != opaque_fmt:
             
             staday.ofc_mod_ts = opaque_fmt
             staday.save()
@@ -113,7 +117,7 @@ def process_opaque_files(opaque_files):
                 value.low_value = val_low
                 value.save()
         # OFA ALERTS
-        elif 'OFA' in opaque_filename:
+        elif 'OFA' in opaque_filename and staday.ofa_mod_ts != opaque_fmt:
             staday.ofa_mod_ts = opaque_fmt
             staday.save()
 
@@ -149,24 +153,19 @@ def build_display():
             else:
                 alert_warning_level = 1
             alert = 'OFC'
-            alert_value = latest_ofc_filemodtime.strftime('%Y-%m-%d (%j) %H:%M:%S')
+            alert_value = latest_ofc_filemodtime.strftime('%Y-%m-%d (%j) %H:%M:%S UTC')
             alerts_disp_obj, _ = AlertsDisplay.objects.get_or_create(station_fk=net_sta,
                                                                      alert=alert,
                                                                      alert_warning_level=alert_warning_level,
                                                                      alert_value=alert_value
                                                                      )
+            # add the other alerts, if any
             for alert in alerts:
                 alerts_disp_obj, _ = AlertsDisplay.objects.get_or_create(station_fk=net_sta,
                                                                          alert=alert.alert,
                                                                          alert_warning_level=3 if alert.triggered else 1,
                                                                          alert_value=str(alert.triggered)
                                                                          )
-                if _:
-                    print('Full alert:', alert.alert)
-                    print('Warn Level:', 3 if alert.triggered else 1)
-                    print('Alert Val: ', alert.triggered)
-                    print('Obj number:', alerts_disp_obj)
-                    print()
     #CHANNELS; first truncate the table and then repopulate
     try:
         #this is dirty, but otherwise the command won't execute
@@ -202,8 +201,3 @@ def build_display():
                                                                          channel_warning_level=chan_warn_level,
                                                                          channel_value='%.2f' % channel.avg_value
                                                                          )
-                if _:
-                    print('Full chan:', channel.channel_fk.channel)
-                    print('Warn Levl:', chan_warn_level)
-                    print('Chann Val: ', '%.2f' % channel.avg_value)
-                    print()

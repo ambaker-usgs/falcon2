@@ -100,7 +100,6 @@ def api_channel_data(request, network, station, channel):
                      'ymax': ymax,
                      'data': []}
         chanel = Channels.objects.get(channel=channel)
-        print(chanel)
         plot_data['units'] = chanel.units
         if 'alert' in fields:
             alert_values = Alerts.objects.filter(stationday_fk__station_fk=stationobj).values_list('stationday_fk__stationday_date', 'alert_text').order_by('-stationday_fk__stationday_date')

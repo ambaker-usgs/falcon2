@@ -62,9 +62,8 @@ def station_level(request, network='*', station='*'):
     net_stas = Stations.objects.filter(station_name__istartswith=network,station_name__iendswith=station)
     net_stas = process_stations(net_stas)
     # get the most recent 60 days worth of alerts
-    most_recent_stnday = Stationdays.objects.filter(station_fk=net_stas[0]).order_by('-stationday_date').first().stationday_date
-    alerts = Alerts.objects.filter(stationday_fk__station_fk=net_stas[0],
-                                   stationday_fk__stationday_date__gte=most_recent_stnday - timedelta(60)).order_by('-alert_ts')[:100]
+    # most_recent_stnday = Stationdays.objects.filter(station_fk=net_stas[0]).order_by('-stationday_date').first().stationday_date
+    alerts = Alerts.objects.filter(stationday_fk__station_fk=net_stas[0]).order_by('-alert_ts')[:100]
     template = loader.get_template('falcon/alerts.html')
     context = {
         'message': (datetime.today() - now).seconds,

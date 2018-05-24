@@ -12,6 +12,8 @@ import subprocess
 
 shallow_days_back = 10
 deep_years_back = 6
+delayed_IC_stations = ['IC_KMI','IC_SSE','IC_WMQ','IC_XAN']
+IC_delay = 15
 
 class Command(BaseCommand):
     help = 'Closes the specified poll for voting'
@@ -148,18 +150,24 @@ def build_display():
             # add OFC alert, checking if filemodtime is recent
             latest_stationday = Stationdays.objects.filter(station_fk=net_sta).order_by('-stationday_date').first()
             if latest_stationday.ofc_mod_ts != None and latest_stationday.ofa_mod_ts != None:
-                latest_ofc_filemodtime = max(latest_stationday.ofc_mod_ts, latest_stationday.ofa_mod_ts)
+                latest_ofx_filemodtime = max(latest_stationday.ofc_mod_ts, latest_stationday.ofa_mod_ts)
             elif latest_stationday.ofc_mod_ts != None:
-                latest_ofc_filemodtime = latest_stationday.ofc_mod_ts
+                latest_ofx_filemodtime = latest_stationday.ofc_mod_ts
             elif latest_stationday.ofa_mod_ts != None:
-                latest_ofa_filemodtime = latest_stationday.ofa_mod_ts
+                latest_ofx_filemodtime = latest_stationday.ofa_mod_ts
             # check the recency of the timestamp
-            if latest_ofc_filemodtime < datetime.combine(date.today(), datetime.min.time()):
+            if latest_ofx_filemodtime < datetime.combine(date.today(), datetime.min.time()):
                 alert_warning_level = 3
             else:
                 alert_warning_level = 1
+            # account for the delayed IC stations
+            if net_sta.station_name.split('_')[-1] in delayed_IC_stations:
+                if latest_ofx_filemodtime < datetime.combine(date.today() - timedelta(IC_delay), datetime.min.time()):
+                    alert_warning_level = 3
+                else:
+                    alert_warning_level = 1
             alert = 'OFC'
-            alert_value = latest_ofc_filemodtime.strftime('%Y-%m-%d (%j) %H:%M:%S UTC')
+            alert_value = latest_ofx_filemodtime.strftime('%Y-%m-%d (%j) %H:%M:%S UTC')
             alerts_disp_obj, _ = AlertsDisplay.objects.get_or_create(station_fk=net_sta,
                                                                      alert=alert,
                                                                      alert_warning_level=alert_warning_level,

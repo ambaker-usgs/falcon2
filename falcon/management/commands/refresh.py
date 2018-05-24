@@ -3,12 +3,11 @@ from django.core.management.base import BaseCommand, CommandError
 from falcon.models import Stations, Stationdays, Channels, Alerts, ValuesAhl, AlertsDisplay, ChannelsDisplay
 
 import glob
-import httplib2
+# import httplib2
 import os
 import subprocess   
 from datetime import date, datetime, timedelta
 from dateutil import tz
-# from obspy.core import UTCDateTime
 import subprocess
 
 shallow_days_back = 10
@@ -147,7 +146,14 @@ def build_display():
         for net_sta in Stations.objects.all():
             alerts = Alerts.objects.filter(stationday_fk__station_fk=net_sta).order_by('alert','-alert_ts').distinct('alert')
             # add OFC alert, checking if filemodtime is recent
-            latest_ofc_filemodtime = Stationdays.objects.filter(station_fk=net_sta).order_by('-stationday_date').first().ofc_mod_ts
+            latest_stationday = Stationdays.objects.filter(station_fk=net_sta).order_by('-stationday_date').first()
+            if latest_stationday.ofc_mod_ts != None and latest_stationday.ofa_mod_ts != None:
+                latest_ofc_filemodtime = max(latest_stationday.ofc_mod_ts, latest_stationday.ofa_mod_ts)
+            elif latest_stationday.ofc_mod_ts != None:
+                latest_ofc_filemodtime = latest_stationday.ofc_mod_ts
+            elif latest_stationday.ofa_mod_ts != None:
+                latest_ofa_filemodtime = latest_stationday.ofa_mod_ts
+            # check the recency of the timestamp
             if latest_ofc_filemodtime < datetime.combine(date.today(), datetime.min.time()):
                 alert_warning_level = 3
             else:

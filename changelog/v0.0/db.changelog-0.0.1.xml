@@ -146,4 +146,32 @@
                    ('WS',   'Wind Speed', 'Knots');
         </sql>
     </changeSet>
+    <changeSet author="ambaker" id="0.0.1-8">
+        <addUniqueConstraint
+            columnNames="station_fk, stationday_date"
+            constraintName="station_fk__stationday_date_constraint"
+            tableName="stationdays"
+            />
+    </changeSet>
+    <changeSet author="ambaker" id="0.0.1-9">
+        <addUniqueConstraint
+            columnNames="station_name"
+            constraintName="station_name__constraint"
+            tableName="stations"
+            />
+    </changeSet>
+    <changeSet author="ambaker" id="0.0.1-10">
+        <addUniqueConstraint
+            columnNames="stationday_fk, channel_fk"
+            constraintName="stationday_fk__channel_fk__constraint"
+            tableName="values_ahl"
+            />
+    </changeSet>
+    <changeSet author="ambaker" id="0.0.1-11">
+        <addUniqueConstraint
+            columnNames="channel"
+            constraintName="channel__constraint"
+            tableName="channels"
+            />
+    </changeSet>
 </databaseChangeLog>

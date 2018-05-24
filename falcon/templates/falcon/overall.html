@@ -6,9 +6,9 @@
 <br><br>
 <br><br>
 
-<div class="falcon2">
+<!--<div class="falcon2">
     {{message}} seconds
-</div>
+</div>-->
 
 {% for station in stations %}
     {% if station.station_warning_level < 2 %}
@@ -35,7 +35,7 @@
         {% else %}
         <div class="falcon2 warning black">
         {% endif %}
-        <span title="{{alert.alert_value}} {{alert.alert_warning_level}}">
+        <span title="{{alert.alert_value}}">
         {{alert.alert}}</span></div>
     {% endfor %}
     

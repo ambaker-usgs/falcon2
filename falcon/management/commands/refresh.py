@@ -167,10 +167,11 @@ def build_display():
                                                                      )
             # add the other alerts, if any
             for alert in alerts:
+                alert_val = 'alarm triggered' if alert.triggered else 'operating normally'
                 alerts_disp_obj, _ = AlertsDisplay.objects.get_or_create(station_fk=net_sta,
                                                                          alert=alert.alert,
                                                                          alert_warning_level=3 if alert.triggered else 1,
-                                                                         alert_value=str(alert.triggered)
+                                                                         alert_value=alert_val
                                                                          )
     #CHANNELS; first truncate the table and then repopulate
     try:

@@ -18,7 +18,7 @@ def process_stations(station_objects=Stations.objects.all().order_by('station_na
         raise Http404
     for net_sta in station_objects:
         net_sta.net_code, net_sta.sta_code = net_sta.station_name.split('_')
-        alerts_disp = AlertsDisplay.objects.filter(station_fk=net_sta)
+        alerts_disp = AlertsDisplay.objects.filter(station_fk=net_sta).exclude(alert__istartswith='B',alert__endswith='V')
         channels_disp = ChannelsDisplay.objects.filter(station_fk=net_sta)
         net_sta.alerts = alerts_disp
         net_sta.channels = channels_disp

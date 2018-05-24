@@ -99,10 +99,9 @@ def api_channel_data(request, network, station, channel):
                      'ymin': ymin,
                      'ymax': ymax,
                      'data': []}
-        if channel.endswith('V'):
-            plot_data['units'] = 'Volts DC'
-        else:
-            plot_data['units'] = 'Whatever this is?'
+        chanel = Channels.objects.get(channel=channel)
+        print(chanel)
+        plot_data['units'] = chanel.units
         if 'alert' in fields:
             alert_values = Alerts.objects.filter(stationday_fk__station_fk=stationobj).values_list('stationday_fk__stationday_date', 'alert_text').order_by('-stationday_fk__stationday_date')
             alerts = []

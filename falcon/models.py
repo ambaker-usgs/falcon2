@@ -58,8 +58,8 @@ class Alerts(models.Model):
         db_table = 'alerts'
     
     def __str__(self):
-        alert_dt = self.alert_ts.strftime('%Y/%m/%d (%j) %H:%M:%S')
-        return '%-8s %s %s: Alarm event On %s' % (self.stationday_fk.station_fk.station_name, alert_dt, self.alert, 'triggered' if self.triggered else 'restored')
+        alert_dt = self.alert_ts.strftime('%Y/%m/%d (%j) %H:%M:%S UTC')
+        return '%-8s %s %s: Alarm event %s' % (self.stationday_fk.station_fk.station_name, alert_dt, self.alert, 'On triggered' if self.triggered else 'Off restored')
 
 class ValuesAhl(models.Model):
     value_id = models.BigAutoField(primary_key=True)

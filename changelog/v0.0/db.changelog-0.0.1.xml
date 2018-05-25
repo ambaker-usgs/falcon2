@@ -95,7 +95,7 @@
     <changeSet author="dwitte" id="0.0.0-7">
         <sql>
             INSERT INTO channels(channel, description, units)
-            VALUES ('AC',   'AC Power Has Failed or the AC Breaker Has Tripped', NULL),
+            VALUES ('AC',   'AC Power Has Failed/Breaker Has Tripped', NULL),
                    ('ACC',  'AC Current Commercial', 'Amps AC'),
                    ('B1V',  'Battery #1', 'Volts DC'),
                    ('B2V',  'Battery #2', 'Volts DC'),
@@ -119,7 +119,7 @@
                    ('DCV1', 'DC Voltage Monitor #1', 'Volts DC'),
                    ('DCV2', 'DC Voltage Monitor #2', 'Volts DC'),
                    ('DS',   'Door is Open', NULL),
-                   ('DS2',  'Door is Open (secondary door)', NULL),
+                   ('DS2',  'Door is Open', NULL),
                    ('FE',   'Fiber Error', NULL),
                    ('IHS',  'Internal Humidity Sensor', NULL),
                    ('Indoor t', 'Indoor Temperature', 'Degrees F'),
@@ -127,7 +127,7 @@
                    ('KT',   'KS54000 Temperature', 'Degrees F'),
                    ('KHT1', 'KS54000 Heat Tape #1 Current', 'Amps'),
                    ('KHT2', 'KS54000 Heat Tape #2 Current', 'Amps'),
-                   ('OFC',  'Not receiving data files from Falcon', NULL),
+                   ('OFC',  'Recency of State of Health Data Files from Falcon', NULL),
                    ('PDI',  'Peak Discharge Current', 'Amps'),
                    ('PVA',  'PV Array Voltage', 'Volts'),
                    ('SHT1', 'STS-2 Heat Tape #1 Current', 'Amps'),

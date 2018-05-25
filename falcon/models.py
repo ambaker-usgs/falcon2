@@ -43,7 +43,7 @@ class Channels(models.Model):
         db_table = 'channels'
     
     def __str__(self):
-        return '%s' % (self.channel)
+        return '%s - %s (%s)' % (self.channel, self.description, self.units)
 
 class Alerts(models.Model):
     alert_id = models.BigAutoField(primary_key=True)

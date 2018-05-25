@@ -1,3 +1,4 @@
+from django.core.exceptions import ObjectDoesNotExist
 from django.http import HttpResponse, JsonResponse, Http404
 from django.shortcuts import render, get_list_or_404, get_object_or_404
 from django.template import loader
@@ -18,7 +19,7 @@ def process_stations(station_objects=Stations.objects.all().order_by('station_na
         raise Http404
     for net_sta in station_objects:
         net_sta.net_code, net_sta.sta_code = net_sta.station_name.split('_')
-        alerts_disp = AlertsDisplay.objects.filter(station_fk=net_sta).exclude(alert__istartswith='B',alert__endswith='V')
+        alerts_disp = AlertsDisplay.objects.filter(station_fk=net_sta).exclude(alert__istartswith='B',alert__iendswith='V')
         channels_disp = ChannelsDisplay.objects.filter(station_fk=net_sta)
         net_sta.alerts = alerts_disp
         net_sta.channels = channels_disp
@@ -32,15 +33,31 @@ def process_stations(station_objects=Stations.objects.all().order_by('station_na
             net_sta.station_warning_level = max(net_sta.station_warning_level, channel.channel_warning_level)
     return station_objects
 
+def get_legend(station_objects):
+    'Returns a legend as a list of [alarm, description of alarm]'
+    legend = []
+    legend_alarms = AlertsDisplay.objects.filter(station_fk__in=station_objects).order_by('alert').distinct('alert').values_list('alert')
+    legend_channels = ChannelsDisplay.objects.filter(station_fk__in=station_objects).order_by('channel').distinct('channel').values_list('channel')
+    for alarm in legend_alarms:
+        alarm = alarm[0]
+        try:
+            description = Channels.objects.get(channel=alarm).description
+        except ObjectDoesNotExist:
+            description = 'unknown'
+        legend.append([alarm, description])
+    return legend
+
 # Create your views here.
 def index(request):
     'Overall view'
     now = datetime.today()
     net_stas = process_stations()
-    template = loader.get_template('falcon/overall.html')
+    legend = get_legend(net_stas)
+    template = loader.get_template('falcon/legend.html')
     context = {
         'message': (datetime.today() - now).seconds,
         'stations': net_stas,
+        'legend': legend,
     }
     return HttpResponse(template.render(context, request))
 
@@ -49,10 +66,12 @@ def network_level(request, network='*'):
     now = datetime.today()
     net_stas = Stations.objects.filter(station_name__istartswith=network).order_by('station_name')
     net_stas = process_stations(net_stas)
-    template = loader.get_template('falcon/overall.html')
+    legend = get_legend(net_stas)
+    template = loader.get_template('falcon/legend.html')
     context = {
         'message': (datetime.today() - now).seconds,
         'stations': net_stas,
+        'legend': legend,
     }
     return HttpResponse(template.render(context, request))
 
@@ -61,12 +80,14 @@ def station_level(request, network='*', station='*'):
     now = datetime.today()
     net_stas = Stations.objects.filter(station_name__istartswith=network,station_name__iendswith=station)
     net_stas = process_stations(net_stas)
+    legend = get_legend(net_stas)
     alerts = Alerts.objects.filter(stationday_fk__station_fk=net_stas[0]).order_by('-alert_ts')[:100]
-    template = loader.get_template('falcon/alerts.html')
+    template = loader.get_template('falcon/legend.html')
     context = {
         'message': (datetime.today() - now).seconds,
         'stations': net_stas,
-        'alerts': alerts
+        'legend': legend,
+        'alerts': alerts,
     }
     return HttpResponse(template.render(context, request))
         
@@ -99,9 +120,9 @@ def api_channel_data(request, network, station, channel):
                      'ymin': ymin,
                      'ymax': ymax,
                      'data': []}
-        chanel = Channels.objects.get(channel=channel)
-        plot_data['units'] = chanel.units
-        plot_data['description'] = chanel.description
+        channel_obj = Channels.objects.get(channel=channel)
+        plot_data['units'] = channel_obj.units
+        plot_data['description'] = channel_obj.description
         if 'alert' in fields:
             alert_values = Alerts.objects.filter(stationday_fk__station_fk=stationobj).values_list('stationday_fk__stationday_date', 'alert_text').order_by('-stationday_fk__stationday_date')
             alerts = []

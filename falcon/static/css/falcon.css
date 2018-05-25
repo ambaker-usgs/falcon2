@@ -73,6 +73,13 @@ div.station.green {
     background-color: hsla(120,100%,25%,0.6);
     color: black;
 }
+div.container.black {
+    border: 1px solid hsla(0,0%,0%,1);
+}
+div.station.black {
+    background-color: hsla(0,0%,0%,0.5);
+    color: white;
+}
 div.alert_text {
     display: block;
     padding: 0px 10px;

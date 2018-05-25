@@ -232,7 +232,7 @@ function buildGraph()
         .attr("x", width/2)
         .attr("y", -25)
         .style("text-anchor", "middle")
-        .text("Channel: " + document.plot_data.network + "-" + document.plot_data.station + "-" + document.plot_data.channel + ": " + document.plot_data.description);
+        .text(document.plot_data.network + "_" + document.plot_data.station + " " + document.plot_data.channel + " (" + document.plot_data.description + ")");
 
     // No data message
     if(document.plot_data.data[0].values.length == 0)
@@ -327,7 +327,7 @@ function yAutoScale(checkobj)
 // Export the graph to a png
 function exportGraph()
 {
-    saveSvgAsPng(document.getElementById("svggraph"), "diagram.png", { backgroundColor: 'white'});
+    saveSvgAsPng(document.getElementById("svggraph"), document.plot_data.network + "_" + document.plot_data.station + "_" + document.plot_data.channel + ".png", { backgroundColor: 'white'});
 }
 
 // Sort algorithm for dates

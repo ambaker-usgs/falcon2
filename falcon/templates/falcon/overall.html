@@ -2,13 +2,11 @@
 
 {% block content %}
 
-
-<br><br>
-<br><br>
-
 <!--<div class="falcon2">
     {{message}} seconds
 </div>-->
+
+<div class="falcon2" style="color:gray;text-align:center;"><h4>Falcon Health Status as of {{timestamp}}</h4></div>
 
 {% for station in stations %}
     {% if station.station_warning_level < 2 %}

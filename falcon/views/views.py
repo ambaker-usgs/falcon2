@@ -47,15 +47,23 @@ def get_legend(station_objects):
         legend.append([alarm, description])
     return legend
 
+def get_most_recent_update(station_objects):
+    'Returns a datetime object of the most recent OFC/OFA file modified time'
+    ofc = Stationdays.objects.filter(station_fk__in=station_objects).exclude(ofc_mod_ts=None).order_by('-ofc_mod_ts').first().ofc_mod_ts
+    ofa = Stationdays.objects.filter(station_fk__in=station_objects).exclude(ofa_mod_ts=None).order_by('-ofa_mod_ts').first().ofa_mod_ts
+    return max(ofc, ofa)
+
 # Create your views here.
 def index(request):
     'Overall view'
     now = datetime.today()
     net_stas = process_stations()
     legend = get_legend(net_stas)
+    most_recent_update = get_most_recent_update(net_stas)
     template = loader.get_template('falcon/legend.html')
     context = {
-        'message': (datetime.today() - now).seconds,
+        'message': str(datetime.today() - now),
+        'timestamp': most_recent_update.strftime('%Y-%m-%d (%j) %H:%M:%S UTC'),
         'stations': net_stas,
         'legend': legend,
     }
@@ -67,9 +75,11 @@ def network_level(request, network='*'):
     net_stas = Stations.objects.filter(station_name__istartswith=network).order_by('station_name')
     net_stas = process_stations(net_stas)
     legend = get_legend(net_stas)
+    most_recent_update = get_most_recent_update(net_stas)
     template = loader.get_template('falcon/legend.html')
     context = {
-        'message': (datetime.today() - now).seconds,
+        'message': str(datetime.today() - now),
+        'timestamp': most_recent_update.strftime('%Y-%m-%d (%j) %H:%M:%S UTC'),
         'stations': net_stas,
         'legend': legend,
     }
@@ -81,10 +91,12 @@ def station_level(request, network='*', station='*'):
     net_stas = Stations.objects.filter(station_name__istartswith=network,station_name__iendswith=station)
     net_stas = process_stations(net_stas)
     legend = get_legend(net_stas)
+    most_recent_update = get_most_recent_update(net_stas)
     alerts = Alerts.objects.filter(stationday_fk__station_fk=net_stas[0]).order_by('-alert_ts')[:100]
     template = loader.get_template('falcon/legend.html')
     context = {
-        'message': (datetime.today() - now).seconds,
+        'message': str(datetime.today() - now),
+        'timestamp': most_recent_update.strftime('%Y-%m-%d (%j) %H:%M:%S UTC'),
         'stations': net_stas,
         'legend': legend,
         'alerts': alerts,

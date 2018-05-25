@@ -1,0 +1,21 @@
+{% extends "falcon/alerts.html" %}
+
+{% block legend %}
+<br><br>
+<div class="falcon2 container black">
+<div class="falcon2 warning black">LEGEND</div>
+</div>
+
+<div class="falcon2 container black">
+<div class="falcon2 station black">CODE</div>
+<div class="falcon2 warning black">DESCRIPTION</div>
+</div>
+
+{% for code, description in legend %}
+    <div class="falcon2 container black">
+    <div class="falcon2 station black">{{code}}</div>
+    <div class="falcon2 warning black">{{description}}</div>
+    </div>
+{% endfor %}
+
+{% endblock %}

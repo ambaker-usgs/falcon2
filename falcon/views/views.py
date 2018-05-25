@@ -45,7 +45,14 @@ def get_legend(station_objects):
         except ObjectDoesNotExist:
             description = 'unknown'
         legend.append([alarm, description])
-    return legend
+    for channel in legend_channels:
+        channel = channel[0]
+        try:
+            description = Channels.objects.get(channel=channel).description
+        except ObjectDoesNotExist:
+            description = 'unknown'
+        legend.append([channel, description])
+    return sorted(legend)
 
 def get_most_recent_update(station_objects):
     'Returns a datetime object of the most recent OFC/OFA file modified time'

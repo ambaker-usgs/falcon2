@@ -45,7 +45,14 @@ def get_legend(station_objects):
         except ObjectDoesNotExist:
             description = 'unknown'
         legend.append([alarm, description])
-    return legend
+    for channel in legend_channels:
+        channel = channel[0]
+        try:
+            description = Channels.objects.get(channel=channel).description
+        except ObjectDoesNotExist:
+            description = 'unknown'
+        legend.append([channel, description])
+    return sorted(legend)
 
 def get_most_recent_update(station_objects):
     'Returns a datetime object of the most recent OFC/OFA file modified time'
@@ -111,7 +118,8 @@ def api_channel_data(request, network, station, channel):
     if request.method == 'GET':
         fields_raw = request.GET.get('fields')
         start_date_raw = request.GET.get('startdate')
-        start_date = datetime.strptime(start_date_raw, '%Y-%m-%d') if start_date_raw else datetime.now() - timedelta(60)
+        start_date = datetime.strptime(start_date_raw, '%Y-%m-%d') if start_date_raw else Stationdays.objects.filter(station_fk__station_name__istartswith=network,station_fk__station_name__iendswith=station).order_by('stationday_date').first().stationday_date
+        # start_date = datetime.strptime(start_date_raw, '%Y-%m-%d') if start_date_raw else datetime.now() - timedelta(60)
         start_date = datetime(year=start_date.year, month=start_date.month, day=start_date.day, hour=0, minute=0, second=0)  # Remove time
         end_date_raw = request.GET.get('enddate')
         end_date = datetime.strptime(end_date_raw, '%Y-%m-%d') if end_date_raw else datetime.now()
